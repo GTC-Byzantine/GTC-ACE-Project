@@ -159,7 +159,10 @@ def update_checker():
         with open('version.txt', 'r') as f:
             t = f.readlines()[0]
         if r.count('updater') > 0 and r != t:
-            r = requests.get('https://aceproj.gtcsst.org.cn/contents/Update_Resource/updater.exe').content
+            try:
+                r = requests.get('https://aceproj.gtcsst.org.cn/contents/Update_Resource/updater.exe').content
+            except requests.exceptions.ConnectionError:
+                continue
             try:
                 os.remove('updater.exe')
             except FileNotFoundError:
@@ -209,6 +212,6 @@ while True:
         victims.append(root)
     time.sleep(3)
     if new_version:
-        time.sleep(5)
+        time.sleep(9)
         os.system('start updater.exe')
         break
