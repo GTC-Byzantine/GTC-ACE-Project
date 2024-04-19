@@ -153,13 +153,27 @@ def update_checker():
     global new_version
     while True:
         try:
-            r = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/version.txt').content
+            r = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/version.txt').text
         except requests.exceptions.ConnectionError:
             time.sleep(51.4)
             continue
-        with open('version.txt', 'rb') as f:
+        with open('version.txt', 'r') as f:
             t = f.readlines()[0]
-        if r != t:
+        if r.count('updater') > 0 and r != t:
+            try:
+                r = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/updater.exe').content
+            except requests.exceptions.ConnectionError:
+                continue
+            try:
+                os.remove('updater.exe')
+            except FileNotFoundError:
+                pass
+            with open('updater.exe', 'wb') as f:
+                f.write(r)
+            version = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/version.txt').content
+            with open('version.txt', 'wb') as f:
+                f.write(version)
+        elif r != t:
             new_version = True
             return
         time.sleep(51.4)
@@ -167,7 +181,8 @@ def update_checker():
 
 def stay_in_active():
     while not new_version:
-        requests.post(req_url + '/in_active.php', data={'version': version})
+        requests.post(req_url + '/in_active.php',
+                      data={'version': version, 'remains': str(shutil.disk_usage(roots[:2])[2] / (1024 ** 3))})
         time.sleep(9)
 
 
