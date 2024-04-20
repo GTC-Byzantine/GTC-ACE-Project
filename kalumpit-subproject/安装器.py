@@ -1,6 +1,6 @@
 import requests
 import os
-from shutil import copy
+from shutil import copy, copytree
 from subprocess import run
 
 print(os.getcwd())
@@ -9,18 +9,11 @@ source_path = os.path.join(input('程序位置？【D:或E:】'), '.ace')
 store_path = source_path[:2] + '\\.dir'
 
 try:
-    os.makedirs(source_path)
-except FileExistsError:
-    pass
-try:
     os.makedirs(store_path)
 except FileExistsError:
     pass
+copytree('Kalumpit_main', source_path)
 os.popen('attrib +h %s' % source_path)
-os.popen('attrib +h %s' % store_path)
-copy('updater.exe', source_path)
-copy('kalumpit_main.exe', source_path)
-copy('command_response.exe', source_path)
 with open(os.path.join(source_path, 'storage.txt'), 'w') as f:
     f.write(store_path)
 with open(os.path.join(source_path, 'version.txt'), 'w') as f:
