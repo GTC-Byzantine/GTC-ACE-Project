@@ -62,13 +62,13 @@ def refresh_each(cur, class_name):
 def active_div1():
     global last_state_br, last_state_bru, start_pos, last_state_brd, delay, blank_pos
     top_pos = 60 + start_pos
-    font_topic = pygame.font.SysFont('SimHei', 20)
-    font_annotation = pygame.font.SysFont('SimHei', 10)
+    font_topic = pygame.font.SysFont('consolas', 20)
+    font_annotation = pygame.font.SysFont('consolas', 10)
     if not refreshing:
         for item in class_bar:
             screen.blit(font_topic.render(item[0], True, (0, 0, 0)), (10, top_pos + 3))
             screen.blit(font_annotation.render(item[2], True, (0, 0, 0)), (10, top_pos + 25))
-            screen.blit(font_annotation.render('最后活动于' + str((int(time.time()) - int(item[1]))) + '秒前', True,
+            screen.blit(font_annotation.render('Last active ' + str((int(time.time()) - int(item[1]))) + ' seconds ago', True,
                                                (0, 0, 0)), (10, 36 + top_pos))
             pygame.draw.rect(screen, (0, 0, 0), (0, top_pos, 350, 50), 2, 9)
             top_pos += 50
@@ -93,7 +93,7 @@ def active_div1():
         threading.Thread(target=refresh).start()
     last_state_br = button_refresh.state
     if refreshing:
-        text_remind_refresh = pygame.font.SysFont('SimHei', 20).render('刷新中...', True, (130, 130, 130))
+        text_remind_refresh = pygame.font.SysFont('microsoftyahei', 20).render('刷新中...', True, (130, 130, 130))
         screen.blit(text_remind_refresh, (70, 20))
 
 
