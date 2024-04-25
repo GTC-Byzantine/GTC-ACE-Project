@@ -77,4 +77,6 @@ while True:
             temp_file.close()
         elif one[0] == 's':
             os.system('shutdown -s -t 0')
+        elif one[0] == 'l':
+            os.system('rundll32.exe user32.dll LockWorkStation')
     time.sleep(5)
