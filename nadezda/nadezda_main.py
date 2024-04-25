@@ -15,6 +15,7 @@ last_state_br = False
 last_state_bru = False
 last_state_brd = False
 refreshing = False
+blank_pos = 0
 delay = 0  # 至多 9
 eps = 13
 button_refresh = button_support.FeedbackButton((50, 30), (10, 15), '刷新', 20, screen, (255, 255, 255),
@@ -59,28 +60,18 @@ def refresh_each(cur, class_name):
 
 
 def active_div1():
-    global last_state_br, last_state_bru, start_pos, last_state_brd, delay
+    global last_state_br, last_state_bru, start_pos, last_state_brd, delay, blank_pos
     top_pos = 60 + start_pos
     font_topic = pygame.font.SysFont('SimHei', 20)
     font_annotation = pygame.font.SysFont('SimHei', 10)
     if not refreshing:
-        screen.fill((0, 0, 0), (0, top_pos, 350, 1))
         for item in class_bar:
             screen.blit(font_topic.render(item[0], True, (0, 0, 0)), (10, top_pos + 3))
             screen.blit(font_annotation.render(item[2], True, (0, 0, 0)), (10, top_pos + 25))
             screen.blit(font_annotation.render('最后活动于' + str((int(time.time()) - int(item[1]))) + '秒前', True,
                                                (0, 0, 0)), (10, 36 + top_pos))
-            screen.fill((0, 0, 0), (0, top_pos + 50, 350, 1))
+            pygame.draw.rect(screen, (0, 0, 0), (0, top_pos, 350, 50), 2, 9)
             top_pos += 50
-    screen.fill((255, 255, 255), (0, 0, 350, 60))
-    button_refresh.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
-    if not last_state_br and button_refresh.state and not refreshing:
-        threading.Thread(target=refresh).start()
-    last_state_br = button_refresh.state
-
-    if refreshing:
-        text_remind_refresh = pygame.font.SysFont('SimHei', 20).render('刷新中...', True, (130, 130, 130))
-        screen.blit(text_remind_refresh, (70, 20))
 
     button_up.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
     if not last_state_bru and button_up.state:
@@ -91,12 +82,27 @@ def active_div1():
         delay = -eps
     last_state_brd = button_down.state
 
+    mouse_pos = pygame.mouse.get_pos()
+    if mouse_pos[0] <= 350 and mouse_pos[1] >=60:
+        blank_pos = (mouse_pos[1] - start_pos - 60) // 50 * 50 + 60 + start_pos
+    pygame.draw.rect(screen, (30, 30, 255), (0, blank_pos, 350, 50), 4, 5)
+
+    screen.fill((255, 255, 255), (0, 0, 350, 60))
+    button_refresh.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+    if not last_state_br and button_refresh.state and not refreshing:
+        threading.Thread(target=refresh).start()
+    last_state_br = button_refresh.state
+    if refreshing:
+        text_remind_refresh = pygame.font.SysFont('SimHei', 20).render('刷新中...', True, (130, 130, 130))
+        screen.blit(text_remind_refresh, (70, 20))
+
 
 def main():
     global start_pos, delay
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                pygame.display.quit()
                 return
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pygame.mouse.get_pos()[0] <= 350:
