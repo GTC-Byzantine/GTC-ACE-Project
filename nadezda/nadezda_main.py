@@ -13,12 +13,14 @@ bgi.set_alpha(120)
 last_state_br = False
 last_state_bru = False
 last_state_brd = False
+last_state_rff = False
 refreshing = False
 locked = False
 last_state_controlling = 0
 blank_pos = 0
-delay = 0  # 至多 9
+delay = 0
 eps = 18
+file_list = []
 button_refresh = button_support.FeedbackButton((50, 30), (10, 15), '刷新', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
 button_up = button_support.FeedbackButton((30, 30), (300, 480), '↑', 20, screen, (255, 255, 255),
@@ -27,12 +29,19 @@ button_down = button_support.FeedbackButton((30, 30), (300, 520), '↓', 20, scr
                                             (255, 255, 255))
 button_getinfo = button_support.FeedbackButton((50, 30), (500, 274), '拉取', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
-button_upload_command = button_support.FeedbackButton((150, 34), (375, 70), '命令控制器 =>', 20, screen, (255, 255, 255),
+button_upload_command = button_support.FeedbackButton((150, 34), (375, 80), '命令控制器 =>', 20, screen, (255, 255, 255),
+                                               (255, 255, 255))
+button_load_file = button_support.FeedbackButton((140, 34), (375, 134), '拉取文件列表', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
 class_bar = []  # [班级名称, 最后活动时间, 版本] -1 表示 无
 start_pos = 0
 controlling = 0
 disk_usage = 0
+file_show_surface = pygame.Surface((340, 380)).convert_alpha()
+
+
+def load_file_list(class_name):
+    return requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/scanf.php', data={'class_name': class_name}).text
 
 
 def load_info(class_name):
@@ -120,7 +129,7 @@ def active_div1():
 
 
 def active_div2():
-    global locked, last_state_controlling
+    global locked, last_state_controlling, last_state_rff, file_list
     if controlling < len(class_bar) and not refreshing and not locked:
         font_sc = pygame.font.SysFont('consolas', 20)
         text_class_notice = font_sc.render(class_bar[controlling][0], True, (0, 0, 0))
@@ -131,6 +140,7 @@ def active_div2():
         if button_getinfo.state:
             locked = True
             load_info(class_bar[controlling][0])
+            last_state_rff = False
 
     elif controlling < len(class_bar) and not refreshing:
         if last_state_controlling != controlling:
@@ -138,6 +148,13 @@ def active_div2():
         font = pygame.font.SysFont('microsoftyahei', 25, bold=True)
         screen.blit(font.render('磁盘空间剩余：{}G'.format(disk_usage), True, (0, 0, 0)), (375, 30))
         button_upload_command.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+        button_load_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+        if not last_state_rff and button_load_file.state:
+            file_list = load_file_list(class_bar[controlling][0]).split('\n')
+        last_state_rff = button_load_file.state
+
+        file_show_surface.fill((255, 255, 255))
+        screen.blit(file_show_surface, (356, 183))
 
 
     else:
