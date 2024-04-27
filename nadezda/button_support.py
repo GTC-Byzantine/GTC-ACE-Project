@@ -7,7 +7,7 @@ pygame.init()
 
 class FeedbackButton:
     def __init__(self, size, pos, text, text_size, surface, bg_color=(30, 255, 189), border_color=(255, 255, 255),
-                 change_color=((0, 112, 255), (0, 255, 112)), text_color=(0, 0, 0), speed=2, font_type='SimHei'):
+                 change_color=((0, 112, 255), (0, 255, 112)), text_color=(0, 0, 0), speed=2, font_type='microsoftyahei'):
         self.size = size
         self.pos = pos
         if os.path.exists(font_type):
@@ -65,6 +65,11 @@ class FeedbackButton:
                          border_radius=min(self.size) // 4, width=4)
 
         self.surface.blit(self.text, self.font_rect)
+
+    def change_pos(self, pos: tuple[int, int]):
+        self.pos = pos
+        self.font_rect.center = (pos[0] + self.size[0] // 2,
+                                 pos[1] + self.size[1] // 2)
 
 
 class DelayButton:
