@@ -14,13 +14,18 @@ last_state_br = False
 last_state_bru = False
 last_state_brd = False
 last_state_rff = False
+last_state_bru_f = False
+last_state_brd_f = False
+last_state_del = False
 refreshing = False
 locked = False
 last_state_controlling = 0
 blank_pos = 0
 delay = 0
 eps = 18
+eps2 = 15
 file_list = []
+file_show_surface = pygame.Surface((340, 380))
 button_refresh = button_support.FeedbackButton((50, 30), (10, 15), '刷新', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
 button_up = button_support.FeedbackButton((30, 30), (300, 480), '↑', 20, screen, (255, 255, 255),
@@ -29,19 +34,29 @@ button_down = button_support.FeedbackButton((30, 30), (300, 520), '↓', 20, scr
                                             (255, 255, 255))
 button_getinfo = button_support.FeedbackButton((50, 30), (500, 274), '拉取', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
-button_upload_command = button_support.FeedbackButton((150, 34), (375, 80), '命令控制器 =>', 20, screen, (255, 255, 255),
-                                               (255, 255, 255))
+button_upload_command = button_support.FeedbackButton((150, 34), (375, 80), '命令控制器 =>', 20, screen,
+                                                      (255, 255, 255),
+                                                      (255, 255, 255))
 button_load_file = button_support.FeedbackButton((140, 34), (375, 134), '拉取文件列表', 20, screen, (255, 255, 255),
+                                                 (255, 255, 255))
+button_delete = button_support.FeedbackButton((45, 20), (315, -50), '删除', 15, screen, (255, 255, 255),
+                                              (255, 255, 255))
+button_up_file = button_support.FeedbackButton((30, 30), (620, 133), '↑', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
+button_down_file = button_support.FeedbackButton((30, 30), (660, 133), '↓', 20, screen, (255, 255, 255),
+                                                 (255, 255, 255))
 class_bar = []  # [班级名称, 最后活动时间, 版本] -1 表示 无
 start_pos = 0
 controlling = 0
 disk_usage = 0
-file_show_surface = pygame.Surface((340, 380)).convert_alpha()
+delay_file = 0
+start_pos_file = 0
+blank_pos_file = 0
 
 
 def load_file_list(class_name):
-    return requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/scanf.php', data={'class_name': class_name}).text
+    return requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/scanf.php',
+                         data={'class_name': class_name}).text
 
 
 def load_info(class_name):
@@ -52,6 +67,10 @@ def load_info(class_name):
         disk_usage = '未找到文件'
         return
     disk_usage = round(float(res), 3)
+
+
+def delete_file(file_path):
+    requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/delete.php', data={'path': file_path})
 
 
 def refresh():
@@ -129,7 +148,8 @@ def active_div1():
 
 
 def active_div2():
-    global locked, last_state_controlling, last_state_rff, file_list
+    global locked, last_state_controlling, last_state_rff, file_list, blank_pos_file, last_state_brd_f, \
+        last_state_bru_f, delay_file, last_state_del, current_con
     if controlling < len(class_bar) and not refreshing and not locked:
         font_sc = pygame.font.SysFont('consolas', 20)
         text_class_notice = font_sc.render(class_bar[controlling][0], True, (0, 0, 0))
@@ -141,6 +161,7 @@ def active_div2():
             locked = True
             load_info(class_bar[controlling][0])
             last_state_rff = False
+            file_list.clear()
 
     elif controlling < len(class_bar) and not refreshing:
         if last_state_controlling != controlling:
@@ -151,12 +172,47 @@ def active_div2():
         button_load_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
         if not last_state_rff and button_load_file.state:
             file_list = load_file_list(class_bar[controlling][0]).split('\n')
+            file_list.remove('.')
+            file_list.remove('..')
         last_state_rff = button_load_file.state
 
         file_show_surface.fill((255, 255, 255))
+        button_up_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+        if not last_state_bru_f and button_up_file.state:
+            delay_file = eps2
+        last_state_bru_f = button_up.state
+        button_down_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+        if not last_state_brd_f and button_down_file.state:
+            delay_file = -eps2
+        last_state_brd_f = button_down.state
+        mouse_pos = list(pygame.mouse.get_pos())
+        mouse_pos[1] -= 183
+        mouse_pos[0] -= 356
+        if 0 <= mouse_pos[0] <= 340 and 0 <= mouse_pos[1] <= 380:
+            if len(file_list) > 0:
+                current_con = (mouse_pos[1] - start_pos_file) // 20
+                if current_con < len(file_list):
+                    blank_pos_file = (mouse_pos[1] - start_pos_file) // 20 * 20 + start_pos_file
+                    button_delete.change_pos((650, blank_pos_file + 183))
+                else:
+                    blank_pos_file = 0
+                file_show_surface.fill((137, 137, 137), (0, blank_pos_file, 340, 20))
+            else:
+                button_delete.change_pos((650, -50))
+        pos = start_pos_file
+        font = pygame.font.SysFont('SimHei', 15)
+        for file in file_list:
+            if file in ['.', '..']:
+                continue
+            file_show_surface.blit(font.render(file, True, (0, 0, 0)), (5, 2 + pos))
+            pos += 20
         screen.blit(file_show_surface, (356, 183))
-
-
+        if len(file_list) > 0 and 0 <= mouse_pos[0] <= 340 and 0 <= mouse_pos[1] <= 380:
+            button_delete.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+            if not last_state_del and button_delete.state:
+                path = class_bar[controlling][0] + '/upload/' + file_list[current_con]
+                delete_file(path)
+            last_state_del = button_delete.state
     else:
         if last_state_controlling != controlling:
             locked = False
@@ -165,7 +221,7 @@ def active_div2():
 
 
 def main():
-    global start_pos, delay
+    global start_pos, delay, delay_file, start_pos_file
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -177,13 +233,25 @@ def main():
                         delay = -eps
                     elif event.button == 4:
                         delay = eps
+                elif 356 <= pygame.mouse.get_pos()[0] <= 696 and 183 <= pygame.mouse.get_pos()[1] <= 563:
+                    if event.button == 5:
+                        delay_file = -eps2
+                    elif event.button == 4:
+                        delay_file = eps2
         start_pos += delay
+        start_pos_file += delay_file
         if delay > 0:
             delay -= 1
         elif delay < 0:
             delay += 1
+        if delay_file > 0:
+            delay_file -= 1
+        elif delay_file < 0:
+            delay_file += 1
         start_pos = min(start_pos, 0)
+        start_pos_file = min(start_pos_file, 0)
         start_pos = max((max(len(class_bar) - 8, 0) * -50, start_pos))
+        start_pos_file = max((max(len(file_list) - 20, 0) * -20, start_pos_file))
         screen.fill((255, 255, 255))
         screen.blit(bgi, (0, 0))
         screen.fill((0, 0, 0), (350, 0, 2, 578))
