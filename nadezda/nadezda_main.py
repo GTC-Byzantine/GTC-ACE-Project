@@ -1,3 +1,4 @@
+import os.path
 import time
 import pygame
 import requests
@@ -17,6 +18,7 @@ last_state_rff = False
 last_state_bru_f = False
 last_state_brd_f = False
 last_state_del = False
+last_state_open = False
 refreshing = False
 locked = False
 last_state_controlling = 0
@@ -27,20 +29,22 @@ eps2 = 15
 file_list = []
 file_show_surface = pygame.Surface((340, 380))
 button_refresh = button_support.FeedbackButton((50, 30), (10, 15), '刷新', 20, screen, (255, 255, 255),
-                                               (255, 255, 255), font_type = 'image/fzcq.ttf')
+                                               (255, 255, 255), font_type='image/fzcq.ttf')
 button_up = button_support.FeedbackButton((30, 30), (300, 480), '↑', 20, screen, (255, 255, 255),
                                           (255, 255, 255))
 button_down = button_support.FeedbackButton((30, 30), (300, 520), '↓', 20, screen, (255, 255, 255),
                                             (255, 255, 255))
 button_getinfo = button_support.FeedbackButton((50, 30), (500, 274), '拉取', 20, screen, (255, 255, 255),
-                                               (255, 255, 255), font_type = 'image/fzcq.ttf')
+                                               (255, 255, 255), font_type='image/fzcq.ttf')
 button_upload_command = button_support.FeedbackButton((150, 34), (375, 80), '命令控制器 =>', 20, screen,
                                                       (255, 255, 255),
-                                                      (255, 255, 255), font_type = 'image/fzcq.ttf')
+                                                      (255, 255, 255), font_type='image/fzcq.ttf')
 button_load_file = button_support.FeedbackButton((140, 34), (375, 134), '拉取文件列表', 20, screen, (255, 255, 255),
-                                                 (255, 255, 255), font_type = 'image/fzcq.ttf')
-button_delete = button_support.FeedbackButton((45, 20), (315, -50), '删除', 15, screen, (255, 255, 255),
-                                              (255, 255, 255), font_type = 'image/fzcq.ttf')
+                                                 (255, 255, 255), font_type='image/fzcq.ttf')
+button_delete = button_support.FeedbackButton((45, 28), (315, -50), '删除', 15, screen, (255, 255, 255),
+                                              (0, 0, 0), font_type='image/fzcq.ttf')
+button_open = button_support.FeedbackButton((45, 28), (315, -50), '打开', 15, screen, (255, 255, 255),
+                                            (0, 0, 0), font_type='image/fzcq.ttf')
 button_up_file = button_support.FeedbackButton((30, 30), (620, 133), '↑', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
 button_down_file = button_support.FeedbackButton((30, 30), (660, 133), '↓', 20, screen, (255, 255, 255),
@@ -67,6 +71,18 @@ def load_info(class_name):
         disk_usage = '未找到文件'
         return
     disk_usage = round(float(res), 3)
+
+
+def download(class_name, file_name):
+    if os.path.exists(os.path.join('downloads', file_name)):
+        return os.path.join('downloads', file_name)
+    with open(os.path.join('downloads', file_name), 'wb') as f:
+        content = requests.get('https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/upload/{}'.
+                               format(class_name, file_name)).content
+        if content.count(b'404 Not Found'):
+            return 0
+        f.write(content)
+    return os.path.join('downloads', file_name)
 
 
 def delete_file(file_path):
@@ -107,8 +123,8 @@ def refresh_each(cur, class_name):
 def active_div1():
     global last_state_br, last_state_bru, start_pos, last_state_brd, delay, blank_pos, controlling
     top_pos = 60 + start_pos
-    font_topic = pygame.font.SysFont('consolas', 20)
-    font_annotation = pygame.font.SysFont('consolas', 10)
+    font_topic = pygame.font.Font('image/fzcq.ttf', 20)
+    font_annotation = pygame.font.Font('image/fzcq.ttf', 10)
     if not refreshing:
         for item in class_bar:
             screen.blit(font_topic.render(item[0], True, (0, 0, 0)), (10, top_pos + 3))
@@ -143,8 +159,8 @@ def active_div1():
         threading.Thread(target=refresh).start()
     last_state_br = button_refresh.state
     if refreshing:
-        text_remind_refresh = pygame.font.SysFont('microsoftyahei', 20).render('刷新中...', True, (130, 130, 130))
-        screen.blit(text_remind_refresh, (70, 15))
+        text_remind_refresh = pygame.font.Font('image/fzcq.ttf', 20).render('刷新中...', True, (130, 130, 130))
+        screen.blit(text_remind_refresh, (70, 20))
 
 
 def active_div2():
@@ -193,25 +209,35 @@ def active_div2():
                 current_con = (mouse_pos[1] - start_pos_file) // 20
                 if current_con < len(file_list):
                     blank_pos_file = (mouse_pos[1] - start_pos_file) // 20 * 20 + start_pos_file
-                    button_delete.change_pos((650, blank_pos_file + 183))
+                    button_delete.change_pos((650, blank_pos_file + 183 - 4))
+                    button_open.change_pos((605, blank_pos_file + 183 - 4))
                 else:
-                    blank_pos_file = 0
+                    blank_pos_file = -50
+                    button_delete.change_pos((650, -50))
+                    button_open.change_pos((605, -50))
                 file_show_surface.fill((137, 137, 137), (0, blank_pos_file, 340, 20))
             else:
                 button_delete.change_pos((650, -50))
         pos = start_pos_file
         font = pygame.font.Font('image/fzcq.ttf', 15)
         for file in file_list:
-            if file in ['.', '..']:
-                continue
             file_show_surface.blit(font.render(file, True, (0, 0, 0)), (5, 2 + pos))
             pos += 20
         screen.blit(file_show_surface, (356, 183))
         if len(file_list) > 0 and 0 <= mouse_pos[0] <= 340 and 0 <= mouse_pos[1] <= 380:
             button_delete.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+            button_open.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
             if not last_state_del and button_delete.state:
                 path = class_bar[controlling][0] + '/upload/' + file_list[current_con]
                 delete_file(path)
+            elif last_state_del and not button_delete.state:
+                file_list = load_file_list(class_bar[controlling][0]).split('\n')
+                file_list.remove('.')
+                file_list.remove('..')
+            if not last_state_open and button_open.state:
+                feedback = download(class_bar[controlling][0], file_list[current_con])
+                if feedback != 0:
+                    os.system('"{}"'.format(feedback))
             last_state_del = button_delete.state
     else:
         if last_state_controlling != controlling:
