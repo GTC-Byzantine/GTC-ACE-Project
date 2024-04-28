@@ -27,20 +27,20 @@ eps2 = 15
 file_list = []
 file_show_surface = pygame.Surface((340, 380))
 button_refresh = button_support.FeedbackButton((50, 30), (10, 15), '刷新', 20, screen, (255, 255, 255),
-                                               (255, 255, 255))
+                                               (255, 255, 255), font_type = 'image/fzcq.ttf')
 button_up = button_support.FeedbackButton((30, 30), (300, 480), '↑', 20, screen, (255, 255, 255),
                                           (255, 255, 255))
 button_down = button_support.FeedbackButton((30, 30), (300, 520), '↓', 20, screen, (255, 255, 255),
                                             (255, 255, 255))
 button_getinfo = button_support.FeedbackButton((50, 30), (500, 274), '拉取', 20, screen, (255, 255, 255),
-                                               (255, 255, 255))
+                                               (255, 255, 255), font_type = 'image/fzcq.ttf')
 button_upload_command = button_support.FeedbackButton((150, 34), (375, 80), '命令控制器 =>', 20, screen,
                                                       (255, 255, 255),
-                                                      (255, 255, 255))
+                                                      (255, 255, 255), font_type = 'image/fzcq.ttf')
 button_load_file = button_support.FeedbackButton((140, 34), (375, 134), '拉取文件列表', 20, screen, (255, 255, 255),
-                                                 (255, 255, 255))
+                                                 (255, 255, 255), font_type = 'image/fzcq.ttf')
 button_delete = button_support.FeedbackButton((45, 20), (315, -50), '删除', 15, screen, (255, 255, 255),
-                                              (255, 255, 255))
+                                              (255, 255, 255), font_type = 'image/fzcq.ttf')
 button_up_file = button_support.FeedbackButton((30, 30), (620, 133), '↑', 20, screen, (255, 255, 255),
                                                (255, 255, 255))
 button_down_file = button_support.FeedbackButton((30, 30), (660, 133), '↓', 20, screen, (255, 255, 255),
@@ -166,7 +166,7 @@ def active_div2():
     elif controlling < len(class_bar) and not refreshing:
         if last_state_controlling != controlling:
             locked = False
-        font = pygame.font.SysFont('microsoftyahei', 25, bold=True)
+        font = pygame.font.Font('image/fzcq.ttf', 25)
         screen.blit(font.render('磁盘空间剩余：{}G'.format(disk_usage), True, (0, 0, 0)), (375, 30))
         button_upload_command.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
         button_load_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
@@ -200,7 +200,7 @@ def active_div2():
             else:
                 button_delete.change_pos((650, -50))
         pos = start_pos_file
-        font = pygame.font.SysFont('SimHei', 15)
+        font = pygame.font.Font('image/fzcq.ttf', 15)
         for file in file_list:
             if file in ['.', '..']:
                 continue
