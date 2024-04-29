@@ -19,13 +19,14 @@ last_state_bru_f = False
 last_state_brd_f = False
 last_state_del = False
 last_state_open = False
+last_state_add = False
 refreshing = False
 locked = False
 last_state_controlling = 0
 blank_pos = 0
 delay = 0
 eps = 18
-eps2 = 15
+eps2 = 16
 file_list = []
 file_show_surface = pygame.Surface((340, 380))
 button_refresh = button_support.FeedbackButton((50, 30), (10, 15), '刷新', 20, screen, (255, 255, 255),
@@ -49,6 +50,8 @@ button_up_file = button_support.FeedbackButton((30, 30), (620, 133), '↑', 20, 
                                                (255, 255, 255))
 button_down_file = button_support.FeedbackButton((30, 30), (660, 133), '↓', 20, screen, (255, 255, 255),
                                                  (255, 255, 255))
+button_add = button_support.FeedbackButton((45, 30), (315, -50), '添加', 15, screen, (255, 255, 255),
+                                           (0, 0, 0), font_type='image/fzcq.ttf')
 class_bar = []  # [班级名称, 最后活动时间, 版本] -1 表示 无
 start_pos = 0
 controlling = 0
@@ -56,6 +59,9 @@ disk_usage = 0
 delay_file = 0
 start_pos_file = 0
 blank_pos_file = 0
+cmd = ['shutdown', 'lock', 'redownload']
+current_command = []
+timer_cmd = 0
 
 
 def load_file_list(class_name):
@@ -85,6 +91,15 @@ def download(class_name, file_name):
     return os.path.join('downloads', file_name)
 
 
+def open_file(filename):
+    os.system('"{}"'.format(filename))
+
+
+def load_command(class_name):
+    return requests.get(
+        'https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/wonder_list.txt'.format(class_name)).text
+
+
 def delete_file(file_path):
     requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/delete.php', data={'path': file_path})
 
@@ -102,6 +117,9 @@ def refresh():
     for cur in range(len(threads)):
         threads[cur].join()
     refreshing = False
+    for i in range(len(class_bar)):
+        if class_bar[i][0] == '':
+            class_bar.pop(i)
     if class_bar[-1][0] == '':
         class_bar.pop(-1)
     class_bar.sort(key=lambda x: x[0])
@@ -113,11 +131,15 @@ def refresh_each(cur, class_name):
     current_class = class_pos.format(class_name)
     a1 = requests.get(current_class + 'last_active_time.txt').text
     a2 = requests.get(current_class + 'version.txt').text
+    a3 = requests.get(current_class + 'usage.txt').text
     if a1.count('404 Not Found') >= 1:
         a1 = '-1'
     if a2.count('404 Not Found') >= 1:
         a2 = 'UNKNOWN'
-    class_bar[cur] = [class_name, a1, a2]
+    if a3.count('404 Not Found') >= 1 or a3 == '':
+        a3 = '-1'
+    # a3 = round(float(a3), 3)
+    class_bar[cur] = [class_name, a1, a2, a3]
 
 
 def active_div1():
@@ -132,6 +154,8 @@ def active_div1():
             screen.blit(
                 font_annotation.render('Last active ' + str((int(time.time()) - int(item[1]))) + ' seconds ago', True,
                                        (0, 0, 0)), (10, 36 + top_pos))
+            screen.blit(font_annotation.render('Remains {} G'.format(round(float(item[3])), 3), True, (0, 0, 0)),
+                        (250, 36 + top_pos))
             pygame.draw.rect(screen, (0, 0, 0), (0, top_pos, 350, 50), 2, 9)
             top_pos += 50
 
@@ -166,25 +190,28 @@ def active_div1():
 def active_div2():
     global locked, last_state_controlling, last_state_rff, file_list, blank_pos_file, last_state_brd_f, \
         last_state_bru_f, delay_file, last_state_del, current_con
-    if controlling < len(class_bar) and not refreshing and not locked:
-        font_sc = pygame.font.SysFont('consolas', 20)
-        text_class_notice = font_sc.render(class_bar[controlling][0], True, (0, 0, 0))
-        ls_rect = pygame.Rect(text_class_notice.get_rect())
-        ls_rect.center = (525, 259)
-        screen.blit(text_class_notice, ls_rect)
-        button_getinfo.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
-        if button_getinfo.state:
-            locked = True
-            load_info(class_bar[controlling][0])
-            last_state_rff = False
-            file_list.clear()
+    locked = True
+    # if controlling < len(class_bar) and not refreshing and not locked:
+    #     font_sc = pygame.font.SysFont('consolas', 20)
+    #     text_class_notice = font_sc.render(class_bar[controlling][0], True, (0, 0, 0))
+    #     ls_rect = pygame.Rect(text_class_notice.get_rect())
+    #     ls_rect.center = (525, 259)
+    #     screen.blit(text_class_notice, ls_rect)
+    #     button_getinfo.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+    #     if button_getinfo.state:
+    #         locked = True
+    #         load_info(class_bar[controlling][0])
+    #         last_state_rff = False
+    #         file_list.clear()
 
-    elif controlling < len(class_bar) and not refreshing:
+    if controlling < len(class_bar) and not refreshing:
         if last_state_controlling != controlling:
             locked = False
         font = pygame.font.Font('image/fzcq.ttf', 25)
-        screen.blit(font.render('磁盘空间剩余：{}G'.format(disk_usage), True, (0, 0, 0)), (375, 30))
-        button_upload_command.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
+        screen.blit(
+            font.render('磁盘空间剩余：{} G'.format(round(float(class_bar[controlling][3])), 3), True, (0, 0, 0)),
+            (375, 30))
+        # button_upload_command.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
         button_load_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
         if not last_state_rff and button_load_file.state:
             file_list = load_file_list(class_bar[controlling][0]).split('\n')
@@ -237,13 +264,45 @@ def active_div2():
             if not last_state_open and button_open.state:
                 feedback = download(class_bar[controlling][0], file_list[current_con])
                 if feedback != 0:
-                    os.system('"{}"'.format(feedback))
+                    # threading.Thread(target=open_file, args=[feedback]).start()
+                    open_file(feedback)
             last_state_del = button_delete.state
     else:
         if last_state_controlling != controlling:
             locked = False
 
     last_state_controlling = controlling
+
+
+def active_div3():
+    global last_state_add, current_command, timer_cmd
+    if controlling < len(class_bar) and not refreshing:
+        timer_cmd += 1
+        mouse_pos = pygame.mouse.get_pos()
+        if 700 <= mouse_pos[0] <= 1024 and 65 <= mouse_pos[1] <= 185:
+            selected = (mouse_pos[1] - 65) // 30
+            blank = selected * 30 + 65
+            screen.fill((137, 137, 137), (705, blank, 314, 30))
+            button_add.change_pos((969, blank))
+            button_add.operate(mouse_pos, pygame.mouse.get_pressed(3)[0])
+            if not last_state_add and button_add.state:
+                if selected <= 3:
+                    requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/iwonder.php'.format(
+                        class_bar[controlling][0]), data={'cmd': cmd[selected]})
+            if last_state_add and not button_add.state:
+                current_command = load_command(class_bar[controlling][0]).split('\n')
+            last_state_add = button_add.state
+        if timer_cmd >= 60:
+            current_command = load_command(class_bar[controlling][0]).split('\n')
+        timer_cmd %= 60
+        font = pygame.font.Font('image/fzcq.ttf', 20)
+        screen.blit(font.render('快速指令', True, (0, 0, 0)), (710, 10))
+        font_russia = pygame.font.Font('image/21-font.otf', 20)
+        screen.blit(font_russia.render('Что-то удивительное...', True, (0, 0, 0)), (710, 40))
+        screen.blit(font_russia.render('выключать', True, (30, 30, 255)), (710, 70))
+        screen.blit(font_russia.render('блокировка', True, (30, 30, 255)), (710, 100))
+        screen.blit(font_russia.render('перезакачать', True, (30, 30, 255)), (710, 130))
+        screen.blit(font.render('删库跑路', True, (30, 30, 255)), (710, 160))
 
 
 def main():
@@ -284,6 +343,7 @@ def main():
         screen.fill((0, 0, 0), (700, 0, 2, 578))
         active_div1()
         active_div2()
+        active_div3()
 
         pygame.display.flip()
         clock.tick(30)
