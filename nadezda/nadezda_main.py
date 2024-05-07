@@ -180,7 +180,7 @@ def active_div1():
 
 def active_div2():
     global locked, last_state_controlling, last_state_rff, file_list, blank_pos_file, last_state_brd_f, \
-        last_state_bru_f, delay_file, last_state_del, current_con
+        last_state_bru_f, delay_file, last_state_del, current_con, timer_cmd
     locked = True
 
     if controlling < len(class_bar) and not refreshing:
@@ -190,12 +190,12 @@ def active_div2():
         screen.blit(
             font.render('磁盘空间剩余：{} G'.format(round(float(class_bar[controlling][3])), 3), True, (0, 0, 0)),
             (375, 30))
-        # button_upload_command.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
         button_load_file.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
-        if not last_state_rff and button_load_file.state:
+        if (not last_state_rff and button_load_file.state) or (timer_cmd >= 59):
             file_list = load_file_list(class_bar[controlling][0]).split('\n')
             file_list.remove('.')
             file_list.remove('..')
+            timer_cmd = 0
         last_state_rff = button_load_file.state
 
         file_show_surface.fill((255, 255, 255))
