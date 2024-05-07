@@ -195,7 +195,6 @@ def active_div2():
             file_list = load_file_list(class_bar[controlling][0]).split('\n')
             file_list.remove('.')
             file_list.remove('..')
-            timer_cmd = 0
         last_state_rff = button_load_file.state
 
         file_show_surface.fill((255, 255, 255))
