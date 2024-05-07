@@ -1,9 +1,11 @@
+import json
 import os.path
 import time
 import pygame
 import requests
 import button_support
 import threading
+import easygui
 
 screen = pygame.display.set_mode((1024, 578))
 
@@ -20,6 +22,8 @@ last_state_brd_f = False
 last_state_del = False
 last_state_open = False
 last_state_add = False
+last_state_clear = False
+last_state_type = False
 refreshing = False
 locked = False
 last_state_controlling = 0
@@ -52,6 +56,10 @@ button_down_file = button_support.FeedbackButton((30, 30), (660, 133), '↓', 20
                                                  (255, 255, 255))
 button_add = button_support.FeedbackButton((45, 30), (315, -50), '添加', 15, screen, (255, 255, 255),
                                            (0, 0, 0), font_type='image/fzcq.ttf')
+button_clear = button_support.FeedbackButton((45, 30), (969, 200), '清除', 15, screen, (255, 255, 255),
+                                             (0, 0, 0), font_type='image/fzcq.ttf')
+button_type = button_support.FeedbackButton((45, 30), (710, 200), '键入', 15, screen, (255, 255, 255),
+                                            (0, 0, 0), font_type='image/fzcq.ttf')
 class_bar = []  # [班级名称, 最后活动时间, 版本] -1 表示 无
 start_pos = 0
 controlling = 0
@@ -59,7 +67,7 @@ disk_usage = 0
 delay_file = 0
 start_pos_file = 0
 blank_pos_file = 0
-cmd = ['shutdown', 'lock', 'redownload']
+cmd = ['shutdown', 'lock', 'redownload', 'clear']
 current_command = []
 timer_cmd = 0
 
@@ -67,16 +75,6 @@ timer_cmd = 0
 def load_file_list(class_name):
     return requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/scanf.php',
                          data={'class_name': class_name}).text
-
-
-def load_info(class_name):
-    global disk_usage
-    url = 'https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/'
-    res = requests.get(url.format(class_name) + 'usage.txt').text
-    if res.count('404 Not Found') >= 1:
-        disk_usage = '未找到文件'
-        return
-    disk_usage = round(float(res), 3)
 
 
 def download(class_name, file_name):
@@ -89,6 +87,15 @@ def download(class_name, file_name):
             return 0
         f.write(content)
     return os.path.join('downloads', file_name)
+
+
+def input_command():
+    return easygui.enterbox('输入指令')
+
+
+def clear_command_list(class_name):
+    return requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/overall.php'.format(class_name),
+                         data={'VALIDATE': 'GTC contre project'})
 
 
 def open_file(filename):
@@ -107,39 +114,22 @@ def delete_file(file_path):
 def refresh():
     global class_bar, refreshing
     refreshing = True
-    class_list = requests.get('https://aceproj.gtcsst.org.cn/config.txt').text.split('\n')
-    class_bar.clear()
-    class_bar = [[] for _ in class_list]
-    threads = []
-    for cur in range(len(class_list)):
-        threads.append(threading.Thread(target=refresh_each, args=[cur, class_list[cur]]))
-        threads[cur].start()
-    for cur in range(len(threads)):
-        threads[cur].join()
+    user, password = ['SU', '998244353']
+    res = requests.post("https://aceproj.gtcsst.org.cn/contents/allocate/res.php",
+                        data={'user': str(user), 'password': str(password)})
+    lis = json.loads(res.text)
+    class_bar = []
+    for cl in lis:
+        for item in cl:
+            if item == 'state' and cl[item] != 'Success':
+                easygui.msgbox('登录失败')
+            elif item != 'state':
+                if item == 'class':
+                    class_bar.append([cl[item]])
+                else:
+                    class_bar[-1].append(cl[item])
     refreshing = False
-    for i in range(len(class_bar)):
-        if class_bar[i][0] == '':
-            class_bar.pop(i)
-    if class_bar[-1][0] == '':
-        class_bar.pop(-1)
     class_bar.sort(key=lambda x: x[0])
-
-
-def refresh_each(cur, class_name):
-    global class_bar
-    class_pos = 'https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/'
-    current_class = class_pos.format(class_name)
-    a1 = requests.get(current_class + 'last_active_time.txt').text
-    a2 = requests.get(current_class + 'version.txt').text
-    a3 = requests.get(current_class + 'usage.txt').text
-    if a1.count('404 Not Found') >= 1:
-        a1 = '-1'
-    if a2.count('404 Not Found') >= 1:
-        a2 = 'UNKNOWN'
-    if a3.count('404 Not Found') >= 1 or a3 == '':
-        a3 = '-1'
-    # a3 = round(float(a3), 3)
-    class_bar[cur] = [class_name, a1, a2, a3]
 
 
 def active_div1():
@@ -169,12 +159,13 @@ def active_div1():
     last_state_brd = button_down.state
 
     mouse_pos = pygame.mouse.get_pos()
-    if mouse_pos[0] <= 350 and mouse_pos[1] >= 60:
+    if mouse_pos[0] <= 350 and mouse_pos[1] >= 60 and pygame.mouse.get_pressed(3)[0]:
         controlling = (mouse_pos[1] - start_pos - 60) // 50
         if controlling < len(class_bar):
-            blank_pos = (mouse_pos[1] - start_pos - 60) // 50 * 50 + 60 + start_pos
+            blank_pos = controlling * 50 + 60 + start_pos
         else:
             blank_pos = 0
+    blank_pos = controlling * 50 + 60 + start_pos
     pygame.draw.rect(screen, (30, 30, 255), (0, blank_pos, 350, 50), 4, 5)
 
     screen.fill((255, 255, 255), (0, 0, 350, 60))
@@ -191,18 +182,6 @@ def active_div2():
     global locked, last_state_controlling, last_state_rff, file_list, blank_pos_file, last_state_brd_f, \
         last_state_bru_f, delay_file, last_state_del, current_con
     locked = True
-    # if controlling < len(class_bar) and not refreshing and not locked:
-    #     font_sc = pygame.font.SysFont('consolas', 20)
-    #     text_class_notice = font_sc.render(class_bar[controlling][0], True, (0, 0, 0))
-    #     ls_rect = pygame.Rect(text_class_notice.get_rect())
-    #     ls_rect.center = (525, 259)
-    #     screen.blit(text_class_notice, ls_rect)
-    #     button_getinfo.operate(pygame.mouse.get_pos(), pygame.mouse.get_pressed(3)[0])
-    #     if button_getinfo.state:
-    #         locked = True
-    #         load_info(class_bar[controlling][0])
-    #         last_state_rff = False
-    #         file_list.clear()
 
     if controlling < len(class_bar) and not refreshing:
         if last_state_controlling != controlling:
@@ -275,7 +254,7 @@ def active_div2():
 
 
 def active_div3():
-    global last_state_add, current_command, timer_cmd
+    global last_state_add, current_command, timer_cmd, last_state_clear, last_state_type
     if controlling < len(class_bar) and not refreshing:
         timer_cmd += 1
         mouse_pos = pygame.mouse.get_pos()
@@ -294,6 +273,25 @@ def active_div3():
             last_state_add = button_add.state
         if timer_cmd >= 60:
             current_command = load_command(class_bar[controlling][0]).split('\n')
+        button_type.operate(mouse_pos, pygame.mouse.get_pressed(3)[0])
+        if not last_state_type and button_type.state:
+            command = input_command()
+            if command is not None:
+                requests.post('https://aceproj.gtcsst.org.cn/contents/file_de_class/{}/iwonder.php'.format(
+                    class_bar[controlling][0]), data={'cmd': command})
+                current_command = load_command(class_bar[controlling][0]).split('\n')
+        last_state_type = button_type.state
+        button_clear.operate(mouse_pos, pygame.mouse.get_pressed(3)[0])
+        if not last_state_clear and button_clear.state:
+            print(clear_command_list(class_bar[controlling][0]).text)
+            current_command = load_command(class_bar[controlling][0]).split('\n')
+        last_state_clear = button_clear.state
+        screen.fill((255, 255, 255), (710, 240, 304, 368))
+        font_cmd = pygame.font.Font('image/fzcq.ttf', 15)
+        pos = 240
+        for cmds in current_command:
+            screen.blit(font_cmd.render(cmds, True, (0, 0, 0)), (715, pos))
+            pos += 15
         timer_cmd %= 60
         font = pygame.font.Font('image/fzcq.ttf', 20)
         screen.blit(font.render('快速指令', True, (0, 0, 0)), (710, 10))
