@@ -182,7 +182,7 @@ def active_div2():
     global locked, last_state_controlling, last_state_rff, file_list, blank_pos_file, last_state_brd_f, \
         last_state_bru_f, delay_file, last_state_del, current_con, timer_cmd
     locked = True
-
+    timer_cmd += 2
     if controlling < len(class_bar) and not refreshing:
         if last_state_controlling != controlling:
             locked = False
@@ -255,7 +255,7 @@ def active_div2():
 def active_div3():
     global last_state_add, current_command, timer_cmd, last_state_clear, last_state_type
     if controlling < len(class_bar) and not refreshing:
-        timer_cmd += 1
+        
         mouse_pos = pygame.mouse.get_pos()
         if 700 <= mouse_pos[0] <= 1024 and 65 <= mouse_pos[1] <= 185:
             selected = (mouse_pos[1] - 65) // 30
