@@ -14,8 +14,6 @@ if not os.path.exists('screenshots'):
     os.mkdir('screenshots')
 do_exit = False
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 
 def command_response():
     global do_exit
@@ -37,32 +35,37 @@ def command_response():
         elif content == b'exit':
             do_exit = True
             time.sleep(1)
-            s.close()
             ss.close()
             return
 
 
 def shot():
     i = 1
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('10.100.55.185', 25565))
-    while True:
-        if do_exit:
-            break
-        image = ImageGrab.grab(bbox=(0, 0, w, h))
-        file_name = f'{time.time()}.jpeg'
-        image.save(f'screenshots/{file_name}', quality=30)
-        size = os.path.getsize(f'screenshots/{file_name}')
-        s.sendall(str(size).encode())
-        s.recv(1024)
-        with open(f'screenshots/{file_name}', 'rb') as f:
-            while size > 0:
-                cf = f.read(524288)
-                s.sendall(cf)
-                size -= len(cf)
-        s.recv(1024)
-        print(i)
-        i += 1
-        os.remove(f'screenshots/{file_name}')
+    try:
+        while True:
+            if do_exit:
+                time.sleep(0.5)
+                s.close()
+                return
+            image = ImageGrab.grab(bbox=(0, 0, w, h))
+            file_name = f'{time.time()}.jpeg'
+            image.save(f'screenshots/{file_name}', quality=30)
+            size = os.path.getsize(f'screenshots/{file_name}')
+            s.sendall(str(size).encode())
+            s.recv(1024)
+            with open(f'screenshots/{file_name}', 'rb') as f:
+                while size > 0:
+                    cf = f.read(524288)
+                    s.sendall(cf)
+                    size -= len(cf)
+            s.recv(1024)
+            print(i)
+            i += 1
+            os.remove(f'screenshots/{file_name}')
+    except ConnectionResetError:
+        s.close()
 
 
 command_response()
