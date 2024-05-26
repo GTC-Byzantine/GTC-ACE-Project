@@ -11,3 +11,4 @@
 ## 目前可下载的包：
 * 熊猫烧香 (xmsx) win7 可用
 * 熊猫烧香加强版 (xmsx-plus) win7 可用
+* 假蓝屏 (bluescreen) win7 不可用
