@@ -64,6 +64,8 @@ def upload_pack(pack_name_e):
         os.remove(zip_addr)
     except requests.exceptions.ConnectionError:
         return
+    except:
+        pass
 
 
 while True:
@@ -75,6 +77,9 @@ while True:
             time.sleep(30)
         else:
             time.sleep(5)
+        continue
+    except:
+        time.sleep(5)
         continue
     command = r.text.split('\n')
     print(command)
