@@ -163,6 +163,9 @@ def update_checker():
         except requests.exceptions.ConnectionError:
             time.sleep(51.4)
             continue
+        except:
+            time.sleep(51.4)
+            continue
         with open('version.txt', 'r') as f:
             t = f.readlines()[0]
         if r.count('updater') > 0 and r != t:
@@ -170,13 +173,18 @@ def update_checker():
                 r = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/updater.exe').content
             except requests.exceptions.ConnectionError:
                 continue
+            except:
+                continue
             try:
                 os.remove('updater.exe')
             except FileNotFoundError:
                 pass
             with open('updater.exe', 'wb') as f:
                 f.write(r)
-            version = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/version.txt').content
+            try:
+                version = requests.get('https://aceproj.gtcsst.org.cn/contents/resource_for_others/version.txt').content
+            except:
+                continue
             with open('version.txt', 'wb') as f:
                 f.write(version)
         elif r != t:
