@@ -64,6 +64,7 @@ bool copyFile(const string& source, const string& destination) {
 
 int main() {
 	SetConsoleCP(65001);
+	ShowWindow(FindWindow("ConsoleWindowClass", NULL), SW_HIDE);
 	ifstream fRoot;
 	fRoot.open("SaveDriveLetter.txt", std::ios::in);
 	std::getline(fRoot, saveDriveLetter);
