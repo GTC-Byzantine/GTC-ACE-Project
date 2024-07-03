@@ -21,25 +21,38 @@ String SaveRoot = "D:\\.dir\\";
 String[, ] copyRoot = new string[600000, 2];
 bool[] registeredDrive = new bool[26];
 int fileCnt = 0;
-/*
-StringBuilder volumename = new StringBuilder(256);
-StringBuilder fstype = new StringBuilder(256);
-uint serialNum, serialNumLength, flags;
-GetVolumeInformationW("F:\\", volumename,
-    (uint)volumename.Capacity - 1, out serialNum, out serialNumLength,
-    out flags, fstype, (uint)fstype.Capacity - 1);
-Console.WriteLine(volumename.ToString());
-*/
+String localSaveRoot = "";
+
 void scanDirectory(string path)
 {
     DirectoryInfo currentDir = new DirectoryInfo(path);
     FileInfo[] files = currentDir.GetFiles();
     DirectoryInfo[] dirs = currentDir.GetDirectories();
+    foreach (DirectoryInfo dir in dirs)
+    {
+        Console.WriteLine(dir.FullName.Substring(3));
+        Directory.CreateDirectory(localSaveRoot + dir.FullName.Substring(3));
+        scanDirectory(dir.FullName);
+    }
+    foreach (FileInfo file in files)
+    {
+        fileCnt += 1;
+        copyRoot[fileCnt, 0] = file.FullName;
+        copyRoot[fileCnt, 1] = localSaveRoot + file.FullName.Substring(3);
+    }
 }
+/*
+localSaveRoot = $"D:\\.dir\\[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}]\\";
+Directory.CreateDirectory(localSaveRoot);
+scanDirectory("G:\\Otvratitelniy (C++ Reconstruct)");
+for (int i = 1; i <= fileCnt; i++)
+{
+    Console.WriteLine("from " + copyRoot[i, 0] + " to " + copyRoot[i, 1]);
+}
+*/
 DriveInfo[] allDrivesG = DriveInfo.GetDrives();
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 Console.OutputEncoding = System.Text.Encoding.Unicode;
-
 foreach (DriveInfo item in allDrivesG)
 {
     if (item.IsReady)
@@ -71,8 +84,16 @@ while (true)
             Encoding utf8 = Encoding.GetEncoding("utf-8");
             byte[] gb = gbk.GetBytes(item.VolumeLabel);
             gb = Encoding.Convert(gbk, utf8, gb);
-            String saveDirName = SaveRoot + $"[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}] from [{utf8.GetString(gb)}]";
+            String saveDirName = SaveRoot + $"[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}] from [{utf8.GetString(gb)}]\\";
             Console.WriteLine(saveDirName);
+            fileCnt = 0;
+            localSaveRoot  = saveDirName;
+            Directory.CreateDirectory(localSaveRoot);
+            scanDirectory(utf8.GetString(gb));
+for (int i = 1; i <= fileCnt; i++)
+{
+    Console.WriteLine("from " + copyRoot[i, 0] + " to " + copyRoot[i, 1]);
+}
         }
     }
     for (int i = 0; i < 26; i++)
