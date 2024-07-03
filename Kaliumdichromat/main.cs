@@ -4,24 +4,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-/*
-DirectoryInfo d = new DirectoryInfo("D:\\beseige_2");
-FileInfo[] files = d.GetFiles();
-DirectoryInfo[] directories = d.GetDirectories();
-foreach (FileInfo file in files)
-{
-    Console.WriteLine(file.FullName);
-}
-foreach (DirectoryInfo directory in directories)
-{
-    Console.WriteLine(directory.Name);
-}
-*/
 String SaveRoot = "D:\\.dir\\";
 String[, ] copyRoot = new string[600000, 2];
 bool[] registeredDrive = new bool[26];
 int fileCnt = 0;
 String localSaveRoot = "";
+List<String[,]> files;
 
 void scanDirectory(string path)
 {
@@ -89,11 +77,12 @@ while (true)
             fileCnt = 0;
             localSaveRoot  = saveDirName;
             Directory.CreateDirectory(localSaveRoot);
-            scanDirectory(utf8.GetString(gb));
-for (int i = 1; i <= fileCnt; i++)
-{
-    Console.WriteLine("from " + copyRoot[i, 0] + " to " + copyRoot[i, 1]);
-}
+            scanDirectory(item.Name);
+            for (int i = 1; i <= fileCnt; i++)
+            {
+                Console.WriteLine("from " + copyRoot[i, 0] + " to " + copyRoot[i, 1]);
+                File.Copy(copyRoot[i, 0], copyRoot[i, 1], true);
+            }
         }
     }
     for (int i = 0; i < 26; i++)
