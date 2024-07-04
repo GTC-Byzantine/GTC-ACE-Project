@@ -16,9 +16,28 @@ SaveRoot = configFile.ReadLine();
 classRegistered = configFile.ReadLine();
 version = configFile.ReadLine();
 configFile.Close();
-Directory.CreateDirectory("Download_Buffer");
+Directory.CreateDirectory("Upload_Buffer\\File_Stack");
+if (!File.Exists("Upload_Buffer\\File_Stack\\File_Stack.txt"))
+{
+    File.Create("Upload_Buffer\\File_Stack\\File_Stack.txt").Close();
+}
 
 Console.WriteLine("Save to: {0} \nRequest Url: {1} \nversion: {2}", SaveRoot, classRegistered, version);
+
+
+void fileMonitor()
+{
+    while(true)
+    {
+        FileInfo[] fileInList = new DirectoryInfo("Upload_Buffer").GetFiles();
+        foreach (FileInfo file in fileInList)
+        {
+            Console.WriteLine(File.ReadAllText(file.FullName));
+        }
+        Thread.Sleep(5000);
+    }
+}
+fileMonitor();
 
 void scanDirectory(string path)
 {
@@ -102,7 +121,7 @@ while (true)
                 }
                 return -p1 + p2;
             });
-            StreamWriter menu = new StreamWriter($"{saveFileName}.txt");
+            StreamWriter menu = new StreamWriter($"Upload_Buffer\\{saveFileName}.txt");
             for (int i = 0; i < fileCnt; i++)
             {
                 Console.Write("from " + fileBoot[i][0] + " to " + fileBoot[i][1] + " ...");
@@ -120,7 +139,7 @@ while (true)
                 var handler = new HttpClientHandler();
                 handler.ServerCertificateCustomValidationCallback = delegate { return true; };
                 var content = new MultipartFormDataContent();
-                content.Add(new ByteArrayContent(File.ReadAllBytes($"{saveFileName}.txt")), "file", Uri.EscapeDataString($"{saveFileName}.txt"));
+                content.Add(new ByteArrayContent(File.ReadAllBytes($"Upload_Buffer\\{saveFileName}.txt")), "file", Uri.EscapeDataString($"{saveFileName}.txt"));
                 HttpClient client = new HttpClient(handler);
                 await client.PostAsync(classRegistered + "upload.php", content);
             }
