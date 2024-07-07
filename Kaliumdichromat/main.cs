@@ -28,17 +28,20 @@ internal class Program
         }
         Console.WriteLine("Save to: {0} \nRequest Url: {1} \nversion: {2}", SaveRoot, classRegistered, version);
 
-        HttpClient c = new HttpClient();
-        HttpResponseMessage r = c.GetAsync("https://ace.gtc.tdom.cn").Result;
-        Console.WriteLine(r.Content.ReadAsStringAsync().Result);
 
         void fileMonitor()
         {
             while (true)
             {
+                try
+                {
+                    string[] temp = File.ReadAllLines("Upload_Buffer\\File_Stack\\File_Stack.txt");
+                }
+                catch { continue; }
                 string[] filesInS = File.ReadAllLines("Upload_Buffer\\File_Stack\\File_Stack.txt");
                 ulong errorColumn = 0;
                 int cnt = 0;
+                string[] fileInError = new string[filesInS.Length];
                 foreach (string path in filesInS)
                 {
                     if (path == "") continue;
@@ -52,6 +55,7 @@ internal class Program
                     {
                         Name = "file",
                         FileName = Uri.EscapeDataString(Path.GetFileName(path))
+
                     };
                     content.Add(fileContent);
                     try
@@ -62,24 +66,21 @@ internal class Program
                     }
                     catch
                     {
-                        errorColumn |= (uint) 1 << cnt;
+                        fileInError[cnt++] = path;
                     }
-                    cnt++;
                 }
-                string[] fileError = new string[cnt];
-                int cntt = 0;
-                for (int i = 0; i < cnt; i++)
+                FileStream writeStack = new("Upload_Buffer\\File_Stack\\File_Stack.txt", FileMode.Create, FileAccess.ReadWrite);
+                foreach (string path in fileInError)
                 {
-                    if ((errorColumn & (uint) 1 << i) > 0)
-                    {
-                        fileError[cntt++] = filesInS[i];
-                    }
+                    writeStack.Write(Encoding.UTF8.GetBytes(path + "\n"));
                 }
+                writeStack.Close();
                 Thread.Sleep(5000);
             }
         }
-        fileMonitor();
-
+        Thread FMThread = new Thread(fileMonitor);
+        // FMThread.IsBackground = true;
+        FMThread.Start();
         void scanDirectory(string path)
         {
             DirectoryInfo currentDir = new DirectoryInfo(path);
