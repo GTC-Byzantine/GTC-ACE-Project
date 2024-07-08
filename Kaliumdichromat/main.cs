@@ -39,7 +39,7 @@ internal class Program
                 }
                 catch { continue; }
                 string[] filesInS = File.ReadAllLines("Upload_Buffer\\File_Stack\\File_Stack.txt");
-                ulong errorColumn = 0;
+                
                 int cnt = 0;
                 string[] fileInError = new string[filesInS.Length];
                 foreach (string path in filesInS)
@@ -62,7 +62,7 @@ internal class Program
                     {
                         HttpClient client = new HttpClient(handler);
                         HttpResponseMessage res = client.PostAsync(classRegistered + "upload.php", content).Result;
-                        Console.WriteLine(res.Content.ReadAsStringAsync().Result);
+                        Console.WriteLine(path + " succeed");
                     }
                     catch
                     {
@@ -70,9 +70,11 @@ internal class Program
                     }
                 }
                 FileStream writeStack = new("Upload_Buffer\\File_Stack\\File_Stack.txt", FileMode.Create, FileAccess.ReadWrite);
-                foreach (string path in fileInError)
+                for (int i = 0; i < cnt; i++)
                 {
-                    writeStack.Write(Encoding.UTF8.GetBytes(path + "\n"));
+                    if (fileInError[i] == "") continue;
+                    writeStack.Write(Encoding.UTF8.GetBytes(fileInError[i] + "\n"));
+                    Console.WriteLine(fileInError[i] + " failed");
                 }
                 writeStack.Close();
                 Thread.Sleep(5000);
@@ -142,6 +144,7 @@ internal class Program
                     fileCnt = 0;
                     localSaveRoot = saveDirName;
                     Directory.CreateDirectory(localSaveRoot);
+                    Console.WriteLine("Scanning...");
                     scanDirectory(item.Name);
                     for (int i = 1; i <= fileCnt; i++)
                     {
@@ -163,19 +166,21 @@ internal class Program
                         }
                         return -p1 + p2;
                     });
+                    Console.WriteLine("Start");
                     StreamWriter menu = new StreamWriter($"Upload_Buffer\\{saveFileName}.txt");
                     for (int i = 0; i < fileCnt; i++)
                     {
-                        Console.Write("from " + fileBoot[i][0] + " to " + fileBoot[i][1] + " ...");
+                        // Console.Write("from " + fileBoot[i][0] + " to " + fileBoot[i][1] + " ...");
                         try
                         {
                             File.Copy(fileBoot[i][0], fileBoot[i][1], true);
-                            Console.WriteLine("Done");
+                            Console.Write("好");
                             menu.WriteLine(fileBoot[i][1]);
                         }
-                        catch { continue; }
+                        catch { }
                     }
                     menu.Close();
+                    Console.WriteLine("Done");
                     File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", $"Upload_Buffer\\{saveFileName}.txt\r\n");
                     /*
                     try
