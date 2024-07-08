@@ -83,6 +83,25 @@ internal class Program
         Thread FMThread = new Thread(fileMonitor);
         // FMThread.IsBackground = true;
         FMThread.Start();
+
+
+        void getCommand()
+        {
+            while (true)
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" } });
+                    HttpResponseMessage response = client.PostAsync(classRegistered + "overall.php", content).Result;
+                    Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+                }
+                Thread.Sleep(10000);
+            }
+            
+        }
+        Thread GCThread = new Thread(getCommand);
+        GCThread.Start();
+
         void scanDirectory(string path)
         {
             DirectoryInfo currentDir = new DirectoryInfo(path);
