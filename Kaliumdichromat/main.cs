@@ -1,9 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 
 internal class Program
 {
@@ -40,7 +37,7 @@ internal class Program
                 }
                 catch { continue; }
                 string[] filesInS = File.ReadAllLines("Upload_Buffer\\File_Stack\\File_Stack.txt");
-                
+
                 int cnt = 0;
                 string[] fileInError = new string[filesInS.Length];
                 foreach (string path in filesInS)
@@ -102,9 +99,44 @@ internal class Program
                         Console.WriteLine(splited[0]);
                         if (splited[0] == "lock")
                         {
-                            // Console.WriteLine("s");
                             Process p = new Process();
-                            
+                            p.StartInfo.FileName = "cmd.exe";
+                            p.StartInfo.UseShellExecute = false;
+                            p.StartInfo.RedirectStandardError = true;
+                            p.StartInfo.RedirectStandardInput = true;
+                            p.StartInfo.RedirectStandardOutput = true;
+                            p.StartInfo.CreateNoWindow = false;
+                            p.Start();
+                            p.StandardInput.WriteLine("Rundll32.exe user32.dll,LockWorkStation&exit");
+                            p = null;
+                        }
+                        else if (splited[0] == "shutdown")
+                        {
+                            Process p = new Process();
+                            p.StartInfo.FileName = "cmd.exe";
+                            p.StartInfo.UseShellExecute = false;
+                            p.StartInfo.RedirectStandardError = true;
+                            p.StartInfo.RedirectStandardInput = true;
+                            p.StartInfo.RedirectStandardOutput = true;
+                            p.StartInfo.CreateNoWindow = false;
+                            p.Start();
+                            p.StandardInput.WriteLine("shutdown -s -t 0");
+                            p = null;
+                        }
+                        else if (splited[0] == "shutdown-delay")
+                        {
+                            if (splited.Length > 1)
+                            {
+                                string local_cmd = "";
+                                if (splited[1] == "cancel")
+                                {
+                                    local_cmd = "shutdown /a";
+                                }
+                                else
+                                {
+                                    local_cmd = "shutdown -s -t " + splited[1];
+                                }
+                                Process p = new Process();
                                 p.StartInfo.FileName = "cmd.exe";
                                 p.StartInfo.UseShellExecute = false;
                                 p.StartInfo.RedirectStandardError = true;
@@ -112,14 +144,15 @@ internal class Program
                                 p.StartInfo.RedirectStandardOutput = true;
                                 p.StartInfo.CreateNoWindow = false;
                                 p.Start();
-                                p.StandardInput.WriteLine("Rundll32.exe user32.dll,LockWorkStation&exit");
-                            
+                                p.StandardInput.WriteLine(local_cmd);
+                                p = null;
+                            }
                         }
                     }
                 }
                 Thread.Sleep(10000);
             }
-            
+
         }
         Thread GCThread = new Thread(getCommand);
         GCThread.Start();
@@ -162,7 +195,7 @@ internal class Program
         }
         foreach (bool n in registeredDrive)
         { Console.WriteLine(n); }
-        
+
 
         while (true)
         {
