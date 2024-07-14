@@ -1,13 +1,20 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 
+public class packRuntimeInformation
+{
+    public string? version { get; set; }
+    public string? exe { get; set; }
+}
 internal class Program
 {
     private static Task Main(string[] args)
     {
-        string SaveRoot, classRegistered, version;
+        string SaveRoot, classRegistered, version, packDownloadSite;
         string[,] copyRoot = new string[600000, 2];
         bool[] registeredDrive = new bool[26];
         int fileCnt = 0;
@@ -18,7 +25,9 @@ internal class Program
         SaveRoot = configFile.ReadLine();
         classRegistered = configFile.ReadLine();
         version = configFile.ReadLine();
+        packDownloadSite = configFile.ReadLine();
         configFile.Close();
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         if (!Directory.Exists(SaveRoot)) 
         {
@@ -180,10 +189,87 @@ internal class Program
                                 {
                                     File.Delete(zipFileName);
                                 }
-                                ZipFile.CreateFromDirectory(path, zipFileName);
+                                ZipFile.CreateFromDirectory(path, zipFileName, CompressionLevel.Optimal, false);
                                 Console.WriteLine(zipFileName + " done");
                                 File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", zipFileName);
                             }
+                        }
+                        else if (splited[0] == "pack")
+                        {
+                            packRuntimeInformation packInfo = new packRuntimeInformation();
+                            if (!Directory.Exists("sidepacks"))
+                            {
+                                Directory.CreateDirectory("sidepacks");
+                            }
+                            string packName = command.Substring(4).Trim();
+                            Console.WriteLine(packName);
+                            if (!Directory.Exists(Path.Combine("sidepacks", packName)))
+                            {
+                                Directory.CreateDirectory(Path.Combine("sidepacks", packName));
+                                try
+                                {
+                                    using (WebClient wb = new WebClient())
+                                    {
+                                        wb.DownloadFile(packDownloadSite + packName + "/" + packName + ".zip", Path.Combine("sidepacks", packName, packName + ".zip"));
+                                        wb.DownloadFile(packDownloadSite + packName + "/config.txt", Path.Combine("sidepacks", packName, "config.txt"));
+                                    }
+                                }
+                                catch { continue; }
+                                ZipFile.ExtractToDirectory(Path.Combine("sidepacks", packName, packName + ".zip"), Path.Combine("sidepacks", packName, packName), Encoding.GetEncoding("gb18030"));
+                                packInfo = JsonSerializer.Deserialize<packRuntimeInformation>(File.ReadAllText(Path.Combine("sidepacks", packName, "config.txt")));
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    packRuntimeInformation origin = JsonSerializer.Deserialize<packRuntimeInformation>(File.ReadAllText(Path.Combine("sidepacks", packName, "config.txt")));
+                                    try
+                                    {
+                                        using (WebClient wb = new WebClient())
+                                        {
+                                            wb.DownloadFile(packDownloadSite + packName + "/config.txt", Path.Combine("sidepacks", packName, "config.txt"));
+                                        }
+                                    }
+                                    catch { continue; }
+                                    packInfo = JsonSerializer.Deserialize<packRuntimeInformation>(File.ReadAllText(Path.Combine("sidepacks", packName, "config.txt")));
+                                    if (packInfo.version != origin.version)
+                                    {
+                                        Directory.Delete(Path.Combine("sidepacks", packName), true);
+                                        Directory.CreateDirectory(Path.Combine("sidepacks", packName));
+                                        try
+                                        {
+                                            using (WebClient wb = new WebClient())
+                                            {
+                                                wb.DownloadFile(packDownloadSite + packName + "/" + packName + ".zip", Path.Combine("sidepacks", packName, packName + ".zip"));
+                                                wb.DownloadFile(packDownloadSite + packName + "/config.txt", Path.Combine("sidepacks", packName, "config.txt"));
+                                            }
+                                        }
+                                        catch (Exception e) { Console.WriteLine(e); continue; }
+                                        ZipFile.ExtractToDirectory(Path.Combine("sidepacks", packName, packName + ".zip"), Path.Combine("sidepacks", packName, packName), Encoding.GetEncoding("gb18030"));
+                                        packInfo = JsonSerializer.Deserialize<packRuntimeInformation>(File.ReadAllText(Path.Combine("sidepacks", packName, "config.txt")));
+                                    }
+                                }
+                                catch
+                                {
+                                    Directory.Delete(Path.Combine("sidepacks", packName), true);
+                                    continue;
+                                }
+                                
+                            }
+                            try
+                            {
+                                Process p = new Process();
+                                p.StartInfo.WorkingDirectory = Path.Combine("sidepacks", packName, packName);
+                                p.StartInfo.FileName = packInfo.exe;
+                                p.StartInfo.UseShellExecute = true;
+                                p.StartInfo.CreateNoWindow = false;
+                                p.Start();
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e.ToString());
+                            }
+                            
                         }
                     }
                 }
@@ -307,4 +393,5 @@ internal class Program
             Thread.Sleep(1000);
         }
     }
+
 }
