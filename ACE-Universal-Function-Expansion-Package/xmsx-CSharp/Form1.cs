@@ -18,6 +18,7 @@ namespace xmsx
         {
             this.Left = new Random().Next(0, Screen.PrimaryScreen.Bounds.Width - this.Size.Width);
             this.Top = new Random().Next(0, Screen.PrimaryScreen.Bounds.Height - this.Size.Height);
+            this.TopMost = true;
         }
     }
 }
