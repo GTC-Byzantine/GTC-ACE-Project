@@ -202,7 +202,8 @@ namespace Updater
                             string newLine = "";
                             for (int i = 3; i < splited.Length; i++)
                             {
-                                newLine += splited[i] + " ";
+                                newLine += splited[i];
+                                if (i != splited.Length - 1) newLine += " ";
                             }
                             string[] lines = File.ReadAllLines(fileToSet);
                             if (lines.Length >= lineToSet)
