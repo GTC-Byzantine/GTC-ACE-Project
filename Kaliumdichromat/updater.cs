@@ -23,11 +23,11 @@ namespace Updater
                 string line = "";
                 while ((line = r.ReadLine()) != null)
                 {
-                    if (column == 4)
+                    if (column == 5)
                     {
                         packDownloadSite = line;
                     }
-                    else if (column == 5)
+                    else if (column == 6)
                     {
                         bootAddr = line;
                     }
