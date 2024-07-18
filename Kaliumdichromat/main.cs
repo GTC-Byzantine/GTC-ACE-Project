@@ -14,7 +14,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        string SaveRoot, classRegistered, version, packDownloadSite, urlP1, urlP2;
+        string SaveRoot, classRegistered, version, packDownloadSite, urlP1, urlP2, remoteVersionUrl;
         string[,] copyRoot = new string[600000, 2];
         bool[] registeredDrive = new bool[26];
         int fileCnt = 0;
@@ -28,6 +28,7 @@ internal class Program
         classRegistered = urlP2 + urlP1;
         version = configFile.ReadLine();
         packDownloadSite = configFile.ReadLine();
+        remoteVersionUrl = configFile.ReadLine();
         configFile.Close();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
@@ -293,6 +294,33 @@ internal class Program
         }
         Thread GCThread = new Thread(getCommand);
         GCThread.Start();
+
+
+        void updateChecker()
+        {
+            while (true)
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
+                    string remoteVersion = client.GetAsync(remoteVersionUrl).Result.Content.ReadAsStringAsync().Result;
+                    if (remoteVersion != version)
+                    {
+                        Process p = new Process();
+                        p.StartInfo.FileName = "Updater.exe";
+                        p.StartInfo.CreateNoWindow = false;
+                        p.Start();
+                        p = null;
+                        Environment.Exit(0);
+                    }
+                }
+                Thread.Sleep(30000);
+            }
+
+        }
+        Thread UCThread = new Thread(updateChecker);
+        UCThread.Start();
+
 
         void scanDirectory(string path)
         {
