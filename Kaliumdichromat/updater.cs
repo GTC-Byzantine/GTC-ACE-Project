@@ -27,7 +27,7 @@ namespace Updater
                     {
                         packDownloadSite = line;
                     }
-                    else if (column == 6)
+                    else if (column == 7)
                     {
                         bootAddr = line;
                     }
