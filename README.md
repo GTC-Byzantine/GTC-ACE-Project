@@ -19,5 +19,5 @@
 ## 目前可用的功能扩展包
 * 熊猫烧香(xmsx) - 不可描述 | VirusTotal 6/74
 * 熊猫烧香加快版(xmsx-plus) - 更不可描述 | 会被 360 杀掉 | VirusTotal 9/74
-* 熊猫烧香 C# 版(xmsx-CSharp <持续毫秒数> <显示图片数>) - 及其不可描述 | VirusTotal 0/73
-* RAM-Bomber(RAM-Bomber <秒数，略有极大差别>) - 如名称所说，慎用 | VirusTotal 0/74
+* 熊猫烧香 C# 版(xmsx-CSharp <持续毫秒数> <显示图片数>) - 及其不可描述 | VirusTotal 1/71
+* RAM-Bomber(RAM-Bomber <秒数，略有极大差别>) - 如名称所说，慎用 | VirusTotal 1/74
