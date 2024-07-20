@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using System.Diagnostics;
 
 namespace Installer
 {
@@ -31,7 +32,6 @@ namespace Installer
             Console.WriteLine($"当前扩展包下载地址为 {packDownloadUrl}");
             Console.WriteLine($"当前版本更新检查地址为 {versionCheckUrl}");
             Console.WriteLine($"当前下载行为文件地址为 {updateBootUrl}");
-            Console.WriteLine("向服务器发出请求");
             try
             {
                 Directory.CreateDirectory(Path.Combine(dirveLetter, ".dir"));
@@ -39,18 +39,65 @@ namespace Installer
                 new DirectoryInfo(Path.Combine(dirveLetter, ".ace")).Attributes |= FileAttributes.Hidden;
             }
             catch { }
-            using (HttpClient client = new HttpClient())
+            copyDirectory("Kaliumdichromat", Path.Combine(dirveLetter, ".ace"));
+            Console.WriteLine("文件复制完成");
+            File.WriteAllLines(Path.Combine(dirveLetter, ".ace\\config.txt"), [Path.Combine(dirveLetter, ".ace"), className + "/", responseUrl, "unknown", packDownloadUrl, versionCheckUrl, updateBootUrl]);
+            Console.WriteLine("配置文件修改完成");
+            Console.WriteLine("向服务器发出请求");
+            try
             {
-                var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "Req", "New_Class_Register" }, { "Cont", className } });
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
-                HttpResponseMessage response = client.PostAsync("https://ace.gtc.tdom.cn/processer.php", content).Result;
-                Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+                using (HttpClient client = new HttpClient())
+                {
+                    var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "Req", "New_Class_Register" }, { "Cont", className } });
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
+                    HttpResponseMessage response = client.PostAsync("https://ace.gtc.tdom.cn/processer.php", content).Result;
+                    Console.WriteLine(response.Content.ReadAsStringAsync().Result);
+                }
             }
-            /*
-            RegistryKey r = Registry.CurrentUser;
-            RegistryKey rr = r.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-            rr.SetValue("test", "value");
-            */
+            catch { Console.WriteLine("请求失败，请手动添加"); }
+            Process process = new Process();
+            process.StartInfo.WorkingDirectory = Path.Combine(dirveLetter, ".ace");
+            process.StartInfo.FileName = Path.Combine(dirveLetter, ".ace", "Kaliumdichromat.exe");
+            process.StartInfo.CreateNoWindow = false;
+            process.Start();
+            Console.WriteLine("程序已启动");
+            try
+            {
+                RegistryKey r = Registry.CurrentUser;
+                RegistryKey rr = r.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                rr.SetValue("GTC-ACE-Kalium", Path.Combine(dirveLetter, ".ace", "Kaliumdichromat.exe"));
+                RegistryKey runRoot = Registry.CurrentUser.CreateSubKey("Software\\GTC-ACE\\Kaliumdichromat");
+                runRoot.SetValue("RunRoot", Path.Combine(dirveLetter, ".ace"));
+                r.Close();
+                rr.Close();
+                runRoot.Close();
+                Console.WriteLine("注册表修改成功");
+            }
+            catch { Console.WriteLine("注册表修改失败"); }
+            
+        }
+        static void copyDirectory(string sourcePath, string destinationPath)
+        {
+            var dir = new DirectoryInfo(sourcePath);
+            if (!dir.Exists) return;
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                try
+                {
+                    file.CopyTo(Path.Combine(destinationPath, file.Name));
+                }
+                catch { }
+                
+            }
+            foreach (DirectoryInfo sub in dir.GetDirectories())
+            {
+                try
+                {
+                    Directory.CreateDirectory(Path.Combine(destinationPath, sub.Name));
+                }
+                catch { }
+                copyDirectory(Path.Combine(sourcePath, sub.Name), Path.Combine(destinationPath, sub.Name));
+            }
         }
     }
 }
